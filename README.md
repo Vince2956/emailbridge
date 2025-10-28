@@ -12,6 +12,7 @@ It allows you to manage automated email sequences, track their progress, and con
 - Schedule messages with full control over timing  
 - Synchronize automatically with your Nextcloud environment  
 - Clean interface to visualize and control all message flows  
+- Add rules for scheduling your shipments
 
 ---
 
