@@ -1,12 +1,38 @@
-/.idea/
-/*.iml
+# ---- IDE & systèmes ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
 
+# ---- Dépendances ----
 /vendor/
 /vendor-bin/*/vendor/
-
-/.php-cs-fixer.cache
-/tests/.phpunit.cache
-
 /node_modules/
+
+# ---- Fichiers compilés / build ----
 /js/
 /css/
+/dist/
+/build/
+
+# ---- Caches & outils ----
+/.php-cs-fixer.cache
+/tests/.phpunit.cache
+/.phpunit.result.cache
+/.psalm.cache
+
+# ---- Environnements & logs ----
+.env
+.env.local
+*.log
+
+# ---- Archives & temporaires ----
+*.zip
+*.tar.gz
+*.bak
+*.tmp
+
+# ---- Nextcloud packaging ----
+/appinfo/signature.json
+/appinfo/signature.json.sig
+/appinfo/info.xml.bak

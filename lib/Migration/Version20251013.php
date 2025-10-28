@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace OCA\EmailBridge\Migration;
@@ -9,9 +10,10 @@ use OCP\DB\Types;
 use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 
-class Version20251013 extends SimpleMigrationStep {
-
-    public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
+class Version20251013 extends SimpleMigrationStep
+{
+    public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper
+    {
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
@@ -27,8 +29,8 @@ class Version20251013 extends SimpleMigrationStep {
             $table->addColumn('updated_at', Types::DATETIME_MUTABLE);
             $table->addColumn('document_url', Types::STRING, ['length' => 512, 'notnull' => false]);
             $table->addColumn('bypass_file', Types::BOOLEAN, ['notnull' => true,'default' => false,]);
-	    $table->addColumn('unsubscribe_text', Types::TEXT, ['notnull' => false]);
-	    $table->addColumn('user_id', Types::STRING, ['length' => 64, 'notnull' => true]);
+            $table->addColumn('unsubscribe_text', Types::TEXT, ['notnull' => false]);
+            $table->addColumn('user_id', Types::STRING, ['length' => 64, 'notnull' => true]);
             $table->setPrimaryKey(['id'], 'parc_pk');
         }
 
@@ -59,41 +61,41 @@ class Version20251013 extends SimpleMigrationStep {
         }
 
         // ----------------------------
-	// Table: oc_emailbridge_inscription
-	// ----------------------------
-	if (!$schema->hasTable('oc_emailbridge_inscription')) {
-	    $table = $schema->createTable('oc_emailbridge_inscription');
-	    $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-	    $table->addColumn('parcours_id', Types::INTEGER);
-	    $table->addColumn('liste_id', Types::INTEGER);
-	    $table->addColumn('email', Types::STRING, ['length' => 255]);
-	    $table->addColumn('date_inscription', Types::DATETIME);
-	    $table->addColumn('bypass_file', Types::BOOLEAN, ['default' => false, 'notnull' => false]);
-	    $table->addColumn('created_at', Types::DATETIME);
-	    $table->addColumn('updated_at', Types::DATETIME);
-	    $table->addColumn('is_unsubscribed', Types::BOOLEAN, ['default' => false, 'notnull' => false]);
-	    $table->setPrimaryKey(['id'], 'insc_pk');
-	    $table->addIndex(['parcours_id'], 'ins_par');
-	    $table->addIndex(['liste_id'], 'ins_lst');
+        // Table: oc_emailbridge_inscription
+        // ----------------------------
+        if (!$schema->hasTable('oc_emailbridge_inscription')) {
+            $table = $schema->createTable('oc_emailbridge_inscription');
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+            $table->addColumn('parcours_id', Types::INTEGER);
+            $table->addColumn('liste_id', Types::INTEGER);
+            $table->addColumn('email', Types::STRING, ['length' => 255]);
+            $table->addColumn('date_inscription', Types::DATETIME);
+            $table->addColumn('bypass_file', Types::BOOLEAN, ['default' => false, 'notnull' => false]);
+            $table->addColumn('created_at', Types::DATETIME);
+            $table->addColumn('updated_at', Types::DATETIME);
+            $table->addColumn('is_unsubscribed', Types::BOOLEAN, ['default' => false, 'notnull' => false]);
+            $table->setPrimaryKey(['id'], 'insc_pk');
+            $table->addIndex(['parcours_id'], 'ins_par');
+            $table->addIndex(['liste_id'], 'ins_lst');
 
-	    // clé étrangère parcours_id → parcours.id
-	    $table->addForeignKeyConstraint(
-	        'oc_emailbridge_parcours',
-	        ['parcours_id'],
-	        ['id'],
-	        ['onDelete' => 'CASCADE'],
-	        'fk_insc_parcours'
-	    );
-	
-	    // clé étrangère liste_id → liste.id
-	    $table->addForeignKeyConstraint(
-	        'oc_emailbridge_liste',
-	        ['liste_id'],
-	        ['id'],
-	        ['onDelete' => 'CASCADE'],
-	        'fk_insc_liste'
-	    );
-	}
+            // clé étrangère parcours_id → parcours.id
+            $table->addForeignKeyConstraint(
+                'oc_emailbridge_parcours',
+                ['parcours_id'],
+                ['id'],
+                ['onDelete' => 'CASCADE'],
+                'fk_insc_parcours'
+            );
+
+            // clé étrangère liste_id → liste.id
+            $table->addForeignKeyConstraint(
+                'oc_emailbridge_liste',
+                ['liste_id'],
+                ['id'],
+                ['onDelete' => 'CASCADE'],
+                'fk_insc_liste'
+            );
+        }
 
 
         // ----------------------------
@@ -110,7 +112,7 @@ class Version20251013 extends SimpleMigrationStep {
             $table->addColumn('created_at', Types::DATETIME);
             $table->addColumn('updated_at', Types::DATETIME);
             $table->addColumn('delay_minutes', Types::INTEGER, ['default' => 10]);
-	    $table->addColumn('rules', Types::TEXT, ['notnull' => false]);
+            $table->addColumn('rules', Types::TEXT, ['notnull' => false]);
             $table->setPrimaryKey(['id'], 'seq_pk');
 
             // clé étrangère parcours_id → parcours.id

@@ -1,21 +1,25 @@
 <?php
+
 declare(strict_types=1);
 
 namespace OCA\EmailBridge\Service;
 
 use OCP\IDbConnection;
 
-class DocumentService {
+class DocumentService
+{
     private IDbConnection $db;
 
-    public function __construct(IDbConnection $db) {
+    public function __construct(IDbConnection $db)
+    {
         $this->db = $db;
     }
 
     /**
      * Récupère tous les parcours avec leurs étapes
      */
-    public function getAllParcours(): array {
+    public function getAllParcours(): array
+    {
         $qb = $this->db->getQueryBuilder();
         $qb->select('parcours_id', 'type', 'contenu_text', 'document_url', 'ordre')
             ->from('etapesbridge')

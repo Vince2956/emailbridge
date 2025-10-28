@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace OCA\EmailBridge\Controller;
@@ -12,12 +13,13 @@ use OCA\EmailBridge\Defaults;
 use OCA\EmailBridge\Service\EmailService;
 use OCP\AppFramework\Http\TemplateResponse;
 
-class UnsubscribeController extends Controller {
-
+class UnsubscribeController extends Controller
+{
     private IDBConnection $db;
     private EmailService $emailService;
 
-    public function __construct(string $appName, IRequest $request, IDBConnection $db, EmailService $emailService) {
+    public function __construct(string $appName, IRequest $request, IDBConnection $db, EmailService $emailService)
+    {
         parent::__construct($appName, $request);
         $this->db = $db;
         $this->emailService = $emailService;
@@ -28,7 +30,8 @@ class UnsubscribeController extends Controller {
      * @NoAdminRequired
      * @NoCSRFRequired
      */
-    public function getText(int $parcoursId): JSONResponse {
+    public function getText(int $parcoursId): JSONResponse
+    {
         $qb = $this->db->getQueryBuilder();
         try {
             $row = $qb->select('unsubscribe_text')
@@ -51,11 +54,12 @@ class UnsubscribeController extends Controller {
      * Sauvegarde le texte désabonnement
      * @NoAdminRequired
      */
-    public function saveText(int $parcoursId): JSONResponse {
+    public function saveText(int $parcoursId): JSONResponse
+    {
         $text = $this->request->getParam('text');
 
         if (!$parcoursId) {
-            return new JSONResponse(['status'=>'error','message'=>'ID parcours manquant'], 400);
+            return new JSONResponse(['status' => 'error','message' => 'ID parcours manquant'], 400);
         }
 
         $qb = $this->db->getQueryBuilder();
@@ -65,7 +69,7 @@ class UnsubscribeController extends Controller {
                ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId)))
                ->executeStatement();
 
-            return new JSONResponse(['status'=>'ok']);
+            return new JSONResponse(['status' => 'ok']);
         } catch (\Exception $e) {
             return new JSONResponse([
                 'status' => 'error',
@@ -82,7 +86,8 @@ class UnsubscribeController extends Controller {
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    public function process(?int $email_id = null, ?int $inscription_id = null): TemplateResponse {
+    public function process(?int $email_id = null, ?int $inscription_id = null): TemplateResponse
+    {
         try {
             // --- 0) Robustesse : accepter injection ou query params ---
             $inscriptionId = (int) (
