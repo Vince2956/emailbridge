@@ -18,6 +18,7 @@ use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
 use OCA\EmailBridge\Controller\TrackingController;
+use OCA\EmailBridge\AppInfo\StartupCheck;
 
 class Application extends App
 {
