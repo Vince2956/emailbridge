@@ -17,22 +17,28 @@ class Version20251013 extends SimpleMigrationStep
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
-        // ----------------------------
-        // Table: oc_emailbridge_parcours
-        // ----------------------------
-        if (!$schema->hasTable('oc_emailbridge_parcours')) {
-            $table = $schema->createTable('oc_emailbridge_parcours');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('titre', Types::STRING, ['length' => 255]);
-            $table->addColumn('description', Types::TEXT, ['notnull' => false]);
-            $table->addColumn('created_at', Types::DATETIME_MUTABLE);
-            $table->addColumn('updated_at', Types::DATETIME_MUTABLE);
-            $table->addColumn('document_url', Types::STRING, ['length' => 512, 'notnull' => false]);
-            $table->addColumn('bypass_file', Types::BOOLEAN, ['notnull' => true,'default' => false,]);
-            $table->addColumn('unsubscribe_text', Types::TEXT, ['notnull' => false]);
-            $table->addColumn('user_id', Types::STRING, ['length' => 64, 'notnull' => true]);
-            $table->setPrimaryKey(['id'], 'parc_pk');
-        }
+        // Définition du type datetime compatible selon la version
+	$typeDateTime = defined('\OCP\DB\Types::DATETIME_MUTABLE')
+	    ? \OCP\DB\Types::DATETIME_MUTABLE
+	    : 'datetime';
+
+	// ----------------------------
+	// Table: oc_emailbridge_parcours
+	// ----------------------------
+	if (!$schema->hasTable('oc_emailbridge_parcours')) {
+	    $table = $schema->createTable('oc_emailbridge_parcours');
+	    $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+	    $table->addColumn('titre', Types::STRING, ['length' => 255]);
+	    $table->addColumn('description', Types::TEXT, ['notnull' => false]);
+	    $table->addColumn('created_at', $typeDateTime);
+	    $table->addColumn('updated_at', $typeDateTime);
+	    $table->addColumn('document_url', Types::STRING, ['length' => 512, 'notnull' => false]);
+	    $table->addColumn('bypass_file', Types::BOOLEAN, ['notnull' => true, 'default' => false]);
+	    $table->addColumn('unsubscribe_text', Types::TEXT, ['notnull' => false]);
+	    $table->addColumn('user_id', Types::STRING, ['length' => 64, 'notnull' => true]);
+	    $table->setPrimaryKey(['id'], 'parc_pk');
+	}
+
 
         // ----------------------------
         // Table: oc_emailbridge_liste
