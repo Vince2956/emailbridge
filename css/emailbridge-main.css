@@ -1,0 +1,782 @@
+/* =========================================
+   Éléments globaux
+   ========================================= */
+.hidden { display: none !important; }
+/*body { font-family: Arial, sans-serif; color: #333; }*/
+
+:root {
+  --color-primary: #17a2b8;
+  --color-primary-hover: #117a8b;
+}
+
+/* =========================================
+   Conteneur principal
+   ========================================= */
+#emailbridge-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 0;
+    width: 100vw;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding-bottom: 60px; 
+    overflow-y: auto;
+}
+
+/* Scrollbar personnalisée */
+#emailbridge-container::-webkit-scrollbar,
+#parcours::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+#emailbridge-container::-webkit-scrollbar-thumb,
+#parcours::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 4px;
+}
+
+#emailbridge-container::-webkit-scrollbar-thumb:hover,
+#parcours::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+
+#parcours-wrapper {
+    position: relative;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* =========================================
+   Boutons uniformisés (appliqué à tous les boutons "fonctionnels")
+   ========================================= */
+.parcours-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: #2a7ae2;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    margin: 4px 0;
+    transition: background 0.2s ease-in-out;
+}
+
+.parcours-btn {
+  border-width: 0; /* évite apparition de bordure */
+}
+
+.delete-parcours-btn,
+.delete-sequence-btn {
+    background: #e53935;
+}
+
+.delete-parcours-btn:hover,
+.delete-sequence-btn:hover {
+    background: #ff6b6b;
+}
+
+.parcours-btn:hover {
+    background: #4c94ff;
+    color: #f1f1f1;
+}
+/* Boutons principaux */
+.parcours-btn:hover {
+    background: #85c1ff !important; /* bleu plus clair */
+    color: #000 !important;          /* texte lisible */
+}
+
+/* Boutons dans les séquences */
+.sequence-actions .parcours-btn:hover {
+    background: #85c1ff !important;
+    color: #000 !important;
+}
+
+/* Boutons embed */
+.embed-buttons button.parcours-btn:hover {
+    background: #85c1ff !important;
+    color: #000 !important;
+}
+
+/* =========================================
+   Bouton By-pass
+   ========================================= */
+.bypass-file label {
+    cursor: pointer;
+}
+
+.bypass-file input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* =========================================
+   Bouton ajouter parcours
+   ========================================= */
+.add-parcours-column {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #0078d7;
+    color: #fff;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border: none;
+}
+.add-parcours-column:hover { background: #005a9e; }
+
+/* =========================================
+   Wrapper des colonnes
+   ========================================= */
+#parcours {
+    display: flex;
+    gap: 16px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    align-items: flex-start;
+    scroll-behavior: smooth; /* défilement fluide */
+}
+
+/* =========================================
+   Colonne parcours
+   ========================================= */
+.parcours-column {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    gap: 10px;
+    position: relative;
+}
+
+.parcours-column h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #EF4E4E;
+    text-align: center;
+}
+
+/* =========================================
+   Boutons dans la colonne
+   ========================================= */
+.delete-parcours-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: #888;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.delete-parcours-btn::before { content: "🗑️"; }
+
+.delete-parcours-btn:hover {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* =========================================
+   Séquences emails
+   ========================================= */
+.sequence-container {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sequence-actions {
+  display: flex;
+  gap: 8px; /* espace entre les boutons */
+}
+
+.sequence-actions .parcours-btn {
+  flex: 1;
+  width: auto !important; /* override du 100% */
+  font-size: 12px;        /* plus petit que 14px */
+  padding: 6px 8px;       /* réduit aussi la hauteur */
+  white-space: nowrap;    /* interdit le retour à la ligne */
+}
+.emails-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.email-block {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fafafa;
+    transition: all 0.3s ease;
+    color: #14232C;
+}
+
+
+/* =========================================
+   Bloc test email
+   ========================================= */
+.parcours-test label { 
+	font-weight: bold; 
+	font-size: 13px; 
+	margin-bottom: 5px; 
+	display: block; 
+	color: #14232C;
+}
+
+.test-row { display: flex; gap: 10px; align-items: center; }
+.test-row .test-input {
+    flex: 2; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;
+}
+
+/* =========================================
+   Bloc fichier cible
+   ========================================= */
+.parcours-file { display: flex; flex-direction: column; gap: 5px; }
+
+.selected-file { font-size: 0.85em; color: #555; word-break: break-all; }
+
+
+
+/* =========================================
+   Bloc intégration iframe / shortcode / HTML
+   ========================================= */
+.parcours-embed label { 
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+    font-size: 13px; 
+    color: #14232C;
+}
+.embed-buttons { display: flex; gap: 4px; }
+.embed-buttons button { flex: 1 0 auto; padding: 2px 6px; font-size: 0.75rem; white-space: nowrap; }
+
+/* Container flex pour boutons embed */
+.embed-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+/* Boutons embed spécifiques */
+.embed-buttons button.parcours-btn {
+    flex: 1 0 auto;        /* chaque bouton prend un espace équitable, mais pas 100% */
+    width: auto;            /* override width: 100% de parcours-btn */
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+/* =========================================
+   Modales
+   ========================================= */
+
+.modal:not(.hidden),
+.email-modal:not(.hidden) { display: flex; }
+
+/* Style général de la modale */
+.modal-dialog {
+    max-width: 900px;
+    margin: 2rem auto;
+}
+
+.modal-body {
+    max-height: 70vh; 
+    overflow-y: auto;
+}
+
+
+/* Champs */
+.modal-content input,
+.modal-content textarea,
+.email-modal input,
+.email-modal textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Actions */
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.modal-btn.secondary {
+    background: #f1f1f1;
+    color: #333;
+}
+.modal-btn.secondary:hover {
+    background: #ddd;
+}
+
+/* Blocs */
+.email-block-item {
+    display: block;
+    min-height: 40px;
+    border:1px solid #ccc;
+    padding:5px;
+    margin-bottom:5px;
+    border-radius:3px;
+    position:relative;
+}
+
+#blocks-container {
+    min-height: 150px;
+    overflow-y: auto;
+}
+
+/* Titres lisibles */
+.email-modal h2,
+.email-modal h3,
+.email-modal h4 {
+    color: #222;
+    font-weight: 600;
+}
+
+/* Ligne Sujet + Timing */
+.form-row-inline {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr; /* Sujet prend plus de place */
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+
+.form-row-inline .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   Alignement checkbox bypass
+   ========================================= */
+
+/* Alignement checkbox "Bypass fichier cible" */
+.parcours-bypass label {
+  display: flex;
+  align-items: center; /* centre case + texte */
+  gap: 6px;
+  cursor: pointer;
+  color: #14232C;
+}
+.parcours-bypass input[type="checkbox"] {
+  margin: 0; /* supprime le petit décalage par défaut */
+}
+
+/* Bloc grisé quand bypass activé */
+.parcours-file.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+
+.parcours-target-block.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+
+/* =========================================
+   Apparence unifiée des modales EmailBridge
+   ========================================= */
+
+/* Fond sombre semi-transparent derrière la modale */
+.modal,
+.email-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+.modal:not(.hidden),
+.email-modal:not(.hidden) {
+  display: flex;
+}
+
+
+/* Boîte blanche au centre */
+.modal-content,
+.email-modal .modal-content {
+  background: #fff;
+  color: #222;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  padding: 24px;
+  width: 90%;
+  max-width: 900px; /* ← compromis : ni trop large, ni trop étroit */
+  box-sizing: border-box;
+  position: relative;
+  animation: fadeInModal 0.25s ease-out;
+  text-align: left;
+}
+
+/* Animation douce d'apparition */
+@keyframes fadeInModal {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Titre et paragraphe dans la modale */
+.modal-content h2,
+.modal-content h3 {
+  color: var(--color-primary, #0078d7);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.modal-content p,
+.modal-content label {
+  color: #333;
+}
+
+/* Boutons dans la modale */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+
+.modal-actions button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+.modal-actions button:first-child {
+  background-color: #f5f5f5;
+}
+.modal-actions button:first-child:hover {
+  background-color: #e0e0e0;
+}
+
+.modal-actions button:last-child {
+  background-color: var(--color-primary, #0078d7);
+  color: #fff;
+}
+.modal-actions button:last-child:hover {
+  background-color: var(--color-primary-hover, #005fa3);
+}
+
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.modal-close:hover {
+  color: #333;
+}
+
+/* Surbrillance plus claire au survol */
+#gestion-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1); /* bleu très clair */
+    color: inherit; /* garde la couleur du texte normale */
+}
+
+/* =========================================
+   Tableau Gestion Inscriptions
+   ========================================= */
+#gestion-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    table-layout: fixed; /* Colonnes fixes pour alignement */
+}
+
+#gestion-table th,
+#gestion-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+#gestion-table th {
+    font-weight: 600;
+    background-color: #f1f1f1;
+}
+
+/* --- Statuts lignes --- */
+#gestion-table tbody tr.en_cours {
+    background-color: #fffbe6;  /* jaune clair */
+}
+
+#gestion-table tbody tr.termine {
+    background-color: #e6ffed;  /* vert très clair */
+}
+
+#gestion-table tbody tr.arrete {
+    background-color: #ffe6e6;  /* rouge très clair */
+}
+
+/* Surbrillance au survol (toujours visible) */
+#gestion-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Boutons dans le tableau */
+#gestion-table td.action-col {
+    display: flex;
+    /*flex-wrap: wrap;    pour passer sur plusieurs lignes si besoin */
+    gap: 4px;
+    justify-content: flex-start;
+}
+#gestion-table .stop-seq-btn,
+#gestion-table .stop-all-btn,
+#gestion-table .redirect-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+#gestion-table .stop-seq-btn { background: #f0ad4e; color: #fff; }
+#gestion-table .stop-seq-btn:hover { background: #ec971f; }
+
+#gestion-table .stop-all-btn { background: #d9534f; color: #fff; }
+#gestion-table .stop-all-btn:hover { background: #c9302c; }
+
+#gestion-table .redirect-btn { background: #5bc0de; color: #fff; }
+#gestion-table .redirect-btn:hover { background: #31b0d5; }
+
+/* Mini-table pour derniers / prochains messages */
+.msg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.msg-table td {
+    padding: 2px 6px;
+    border-bottom: 1px solid #eee;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msg-table td:first-child {
+    font-weight: 600;
+}
+
+.msg-table td.date-time {
+    color: #666;
+    font-size: 12px;
+}
+
+/* Container modale pour tableau */
+#gestion-table-container {
+    max-height: 400px; /* Hauteur max pour la modale */
+    overflow-y: auto;  /* Défilement vertical si contenu trop grand */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding-right: 4px; /* pour scrollbar */
+}
+
+/* Scrollbar personnalisée */
+#gestion-table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+#gestion-table-container::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 4px;
+}
+
+#gestion-table-container::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* Adaptation responsive si nécessaire */
+@media (max-width: 768px) {
+    #gestion-table th, #gestion-table td {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    #gestion-table .stop-seq-btn,
+    #gestion-table .stop-all-btn,
+    #gestion-table .redirect-btn {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+}
+
+.msg-date {
+    color: #666;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+
+
+/* =========================================
+   Section Finisher sous le graphique
+   ========================================= */
+#finisher-section {
+    margin-top: 24px;
+    background: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+#finisher-section h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #17a2b8; /* ta couleur primaire */
+    text-align: center;
+}
+
+/* Tableau finisher */
+#finisher-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background-color: #fff;
+    border-radius: 6px;
+    overflow: hidden; /* arrondis effectifs */
+}
+
+#finisher-table th,
+#finisher-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+#finisher-table th {
+    background-color: #f1f1f1;
+    font-weight: 600;
+    color: #333;
+}
+
+#finisher-table tbody tr:hover {
+    background-color: rgba(23, 162, 184, 0.08); /* léger bleu primaire au survol */
+}
+
+/* État visuel plus léger */
+#finisher-table tbody tr td {
+    color: #555;
+}
+
+/* Ajustement responsive */
+@media (max-width: 768px) {
+    #finisher-section {
+        padding: 10px;
+    }
+
+    #finisher-table th, #finisher-table td {
+        padding: 6px;
+        font-size: 12px;
+    }
+}
+
+/* ==========================
+   Bloc Règles d’envoi - version stable
+   ========================== */
+.rules-section {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px 15px;
+  background: #f8f9fa;
+}
+
+.rules-section h4 {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: #333;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.rule-item label {
+  font-size: 0.95em;
+  color: #444;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.rule-checkbox {
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.rule-select {
+  flex: 1 1 180px;
+  min-width: 180px;
+  max-width: 240px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 0.9em;
+  background: white;
+}
+
+/* Modale scrollable */
+#emailModal .modal-content {
+  max-height: 80vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb transparent;
+}
+
+#emailModal .modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+#emailModal .modal-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+

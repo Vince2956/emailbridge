@@ -10,8 +10,8 @@
 /node_modules/
 
 # ---- Fichiers compilés / build ----
-/js/
-/css/
+#/js/
+#/css/
 /dist/
 /build/
 

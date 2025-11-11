@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Test TinyMCE local</title>
+  <!-- ✅ Chemin corrigé -->
+  <script src="http://192.168.8.125/nextcloud/apps/emailbridge/js/vendor/tinymce/tinymce.min.js"></script>
+</head>
+<body>
+  <h3>Test TinyMCE</h3>
+  <textarea id="editor"></textarea>
+
+  <script>
+    tinymce.init({
+      selector: "#editor",
+      height: 300,
+      plugins: "link lists image code",
+      theme: "silver",
+      branding: false,
+      license_key: 'gpl',
+
+      // toolbar avec boutons titres et paragraphe
+      toolbar: "undo redo | p h1 h2 h3 | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image code",
+
+setup: function (editor) {
+  const headings = ['p','h1','h2','h3']; // plus que H4-H6 supprimés
+  headings.forEach(tag => {
+    editor.ui.registry.addButton(tag, {
+      text: tag === 'p' ? 'Paragraphe' : tag.toUpperCase(),
+      onAction: () => editor.execCommand('FormatBlock', false, tag)
+    });
+  });
+
+  editor.on('change keyup', () => editor.save());
+}
+
+    });
+  </script>
+
+</body>
+</html>
