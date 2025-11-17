@@ -16,9 +16,9 @@ class Version20251014 extends SimpleMigrationStep
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
-        // IMPORTANT: pas de préfixe "oc_"
-        if ($schema->hasTable('emailbridge_parcours')) {
-            $table = $schema->getTable('emailbridge_parcours');
+        // IMPORTANT: utiliser exactement le même nom que dans Version20251013
+        if ($schema->hasTable('oc_emailbridge_parcours')) {
+            $table = $schema->getTable('oc_emailbridge_parcours');
 
             if ($table->hasColumn('bypass_file')) {
                 $column = $table->getColumn('bypass_file');
@@ -26,7 +26,7 @@ class Version20251014 extends SimpleMigrationStep
                 // Autoriser NULL
                 $column->setNotNull(false);
 
-                // Par défaut : false (0) MAIS doit correspondre au type
+                // Mettre un défaut compatible
                 $column->setDefault(0);
             }
         }
