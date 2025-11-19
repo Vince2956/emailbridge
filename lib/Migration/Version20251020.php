@@ -17,7 +17,6 @@ class Version20251020 extends SimpleMigrationStep
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
-        // Compatibilité ancienne version Nextcloud pour le type datetime
         $typeDateTime = defined('\OCP\DB\Types::DATETIME_MUTABLE')
             ? \OCP\DB\Types::DATETIME_MUTABLE
             : Types::DATETIME;
@@ -46,7 +45,7 @@ class Version20251020 extends SimpleMigrationStep
             $table = $schema->createTable('emailbridge_liste');
             $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
             $table->addColumn('email', Types::STRING, ['length' => 255]);
-            $table->addColumn('parcours_id', Types::INTEGER);
+            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('token', Types::STRING, ['length' => 255]);
             $table->addColumn('confirmed', Types::BOOLEAN, ['default' => 0, 'notnull' => false]);
             $table->addColumn('created_at', $typeDateTime);
@@ -71,8 +70,8 @@ class Version20251020 extends SimpleMigrationStep
         if (!$schema->hasTable('emailbridge_inscription')) {
             $table = $schema->createTable('emailbridge_inscription');
             $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER);
-            $table->addColumn('liste_id', Types::INTEGER);
+            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('liste_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('email', Types::STRING, ['length' => 255]);
             $table->addColumn('date_inscription', $typeDateTime);
             $table->addColumn('bypass_file', Types::BOOLEAN, ['default' => 0, 'notnull' => false]);
@@ -107,7 +106,7 @@ class Version20251020 extends SimpleMigrationStep
         if (!$schema->hasTable('emailbridge_sequence')) {
             $table = $schema->createTable('emailbridge_sequence');
             $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER);
+            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('sujet', Types::STRING, ['length' => 255]);
             $table->addColumn('contenu', Types::TEXT);
             $table->addColumn('send_day', Types::INTEGER, ['default' => 0]);
@@ -134,8 +133,8 @@ class Version20251020 extends SimpleMigrationStep
         if (!$schema->hasTable('emailbridge_envoi')) {
             $table = $schema->createTable('emailbridge_envoi');
             $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('inscription_id', Types::INTEGER);
-            $table->addColumn('sequence_id', Types::INTEGER);
+            $table->addColumn('inscription_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('sequence_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('send_at', $typeDateTime);
             $table->addColumn('status', Types::STRING, ['length' => 20, 'default' => 'en_attente']);
             $table->addColumn('attempts', Types::INTEGER, ['default' => 0]);
@@ -170,8 +169,8 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_stats')) {
             $table = $schema->createTable('emailbridge_stats');
-            $table->addColumn('email_id', Types::INTEGER);
-            $table->addColumn('inscription_id', Types::INTEGER);
+            $table->addColumn('email_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('inscription_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('sent', Types::INTEGER, ['default' => 0]);
             $table->addColumn('opened', Types::INTEGER, ['default' => 0]);
             $table->addColumn('clicked', Types::INTEGER, ['default' => 0]);
@@ -206,7 +205,7 @@ class Version20251020 extends SimpleMigrationStep
         if (!$schema->hasTable('emailbridge_form')) {
             $table = $schema->createTable('emailbridge_form');
             $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER);
+            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
             $table->addColumn('titre', Types::STRING, ['length' => 255, 'notnull' => false]);
             $table->addColumn('type', Types::STRING, ['length' => 20]);
             $table->addColumn('contenu_text', Types::TEXT, ['notnull' => false]);
