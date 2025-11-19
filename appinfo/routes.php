@@ -10,6 +10,10 @@ return [
         ['name' => 'form#submit','url' => '/form/{id}/submit', 'verb' => 'POST'],
         ['name' => 'form#confirm', 'url' => '/confirm/{token}', 'verb' => 'GET'],
 
+	// Exportation site externe
+	['name' => 'embed#getFormEmbed', 'url' => '/formEmbed/{id}','verb' => 'GET'],
+	['name' => 'embed#submitExternal', 'url' => '/formEmbed/{id}/submit', 'verb' => 'POST'],
+
         // Redirections liées à confirmation
         ['name' => 'form#expired',  'url' => '/expired',  'verb' => 'GET'],
         ['name' => 'form#error',    'url' => '/error',    'verb' => 'GET'],

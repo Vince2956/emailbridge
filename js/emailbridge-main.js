@@ -156,26 +156,39 @@ function renderParcours() {
         btn.addEventListener('click', () => testEmail(p.id, input.value));
         col.appendChild(testBlock);
 
-        // --- Embed / shortcode / iframe ---
-        const embedBlock = document.createElement('div');
-        embedBlock.className = 'parcours-embed';
-        embedBlock.innerHTML = `
-            <label>Intégration externe :</label>
-            <div class="embed-buttons">
-                <button class="copy-iframe">iframe</button>
-                <button class="copy-shortcode">shortcode WP</button>
-                <button class="copy-html">HTML</button>
-            </div>
-        `;
-        col.appendChild(embedBlock);
+	// Base URL absolue du Nextcloud
+	const baseUrl = window.location.origin;
+	
+	// --- Embed / shortcode / iframe ---
+	const embedBlock = document.createElement('div');
+	embedBlock.className = 'parcours-embed';
+	embedBlock.innerHTML = `
+	    <label>Intégration externe :</label>
+	    <div class="embed-buttons">
+	        <button class="copy-shortcode">shortcode WP</button>
+	        <button class="copy-html">HTML</button>
+	    </div>
+	`;
+	col.appendChild(embedBlock);
+	
+	// Codes d’intégration **absolus**
+	const shortcodeCode = `[emailbridge id="${p.id}" url="${baseUrl}"]`;
+	const htmlCode = `
+	<div id="emailbridge-form-${p.id}"></div>
+	<script src="${baseUrl}/apps/emailbridge/embed.js"></script>
+	<script>
+	    EmailBridgeEmbed.init({
+	        formId: ${p.id},
+	        server: '${baseUrl}'
+	    });	
+	</script>`.trim();
 
-        const iframeCode = `<iframe src="/apps/emailbridge/form/${p.id}" width="100%" height="400"></iframe>`;
-        const shortcodeCode = `[emailbridge id="${p.id}"]`;
-        const htmlCode = `<div id="emailbridge-form-${p.id}"></div><script src="/apps/emailbridge/embed.js"></script>`;
-        embedBlock.querySelector('.copy-iframe').addEventListener('click', () => copyToClipboard(iframeCode));
-        embedBlock.querySelector('.copy-shortcode').addEventListener('click', () => copyToClipboard(shortcodeCode));
-        embedBlock.querySelector('.copy-html').addEventListener('click', () => copyToClipboard(htmlCode));
-        embedBlock.querySelectorAll('button').forEach(b => b.classList.add('parcours-btn'));
+	// Gestion du copier/coller
+	embedBlock.querySelector('.copy-shortcode').addEventListener('click', () => copyToClipboard(shortcodeCode));
+	embedBlock.querySelector('.copy-html').addEventListener('click', () => copyToClipboard(htmlCode));
+
+	embedBlock.querySelectorAll('button').forEach(b => b.classList.add('parcours-btn'));
+
 
 
 	// --- Bouton Texte Désabonnement ---
