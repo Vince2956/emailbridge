@@ -1,7 +1,8 @@
 (function() {
     const script = document.currentScript;
+
     const id = script.dataset.id;
-    const baseUrl = new URL(script.src).origin;
+    const baseUrl = script.dataset.server || new URL(script.src).origin;
 
     const target = document.getElementById(`emailbridge-form-${id}`);
     if (!target) {
@@ -9,7 +10,6 @@
         return;
     }
 
-    // Charger le HTML du formulaire
     fetch(`${baseUrl}/apps/emailbridge/formEmbed/${id}`)
         .then(r => r.json())
         .then(data => {

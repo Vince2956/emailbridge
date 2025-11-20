@@ -159,7 +159,7 @@ function renderParcours() {
 	// Base URL absolue du Nextcloud
 	const baseUrl = window.location.origin;
 	
-	// --- Embed / shortcode / iframe ---
+	// --- Embed / shortcode / HTML ---
 	const embedBlock = document.createElement('div');
 	embedBlock.className = 'parcours-embed';
 	embedBlock.innerHTML = `
@@ -171,25 +171,24 @@ function renderParcours() {
 	`;
 	col.appendChild(embedBlock);
 	
-	// Codes d’intégration **absolus**
+	// Codes d’intégration **propres** et compatibles avec embed.js
 	const shortcodeCode = `[emailbridge id="${p.id}" url="${baseUrl}"]`;
+
 	const htmlCode = `
 	<div id="emailbridge-form-${p.id}"></div>
-	<script src="${baseUrl}/apps/emailbridge/embed.js"></script>
-	<script>
-	    EmailBridgeEmbed.init({
-	        formId: ${p.id},
-	        server: '${baseUrl}'
-	    });	
-	</script>`.trim();
-
+	
+	<script 
+	    src="${baseUrl}/apps/emailbridge/embed.js"
+	    data-id="${p.id}"
+	    data-server="${baseUrl}"
+	></script>
+	`.trim();
+	
 	// Gestion du copier/coller
 	embedBlock.querySelector('.copy-shortcode').addEventListener('click', () => copyToClipboard(shortcodeCode));
 	embedBlock.querySelector('.copy-html').addEventListener('click', () => copyToClipboard(htmlCode));
-
+	
 	embedBlock.querySelectorAll('button').forEach(b => b.classList.add('parcours-btn'));
-
-
 
 	// --- Bouton Texte Désabonnement ---
 	const unsubscribeBlock = document.createElement('div');
