@@ -1,7 +1,17 @@
 (function() {
     const script = document.currentScript;
+    if (!script) {
+        console.error("EmailBridge : impossible de trouver la balise script actuelle");
+        return;
+    }
 
     const id = script.dataset.id;
+    if (!id) {
+        console.error("EmailBridge : data-id manquant sur la balise script");
+        return;
+    }
+
+    // Prioriser data-server si défini
     const baseUrl = script.dataset.server || new URL(script.src).origin;
 
     const target = document.getElementById(`emailbridge-form-${id}`);
@@ -10,6 +20,7 @@
         return;
     }
 
+    // Charger le HTML du formulaire
     fetch(`${baseUrl}/apps/emailbridge/formEmbed/${id}`)
         .then(r => r.json())
         .then(data => {
