@@ -4,7 +4,7 @@
 	<id>emailbridge</id>
 	<name>Email Bridge</name>
 	<summary><![CDATA[Capture d'email pour transmission de contenu de haute valeur]]></summary>
-	<description><![CDATA[Capture d'email pour transmission de contenu de haute valeur stocké sur le cloud.]]></description>
+	<description><![CDATA[Capture d'email pour transmission de contenu de haute valeur stocké sur le cloud, programmation de séquence de messages sur différents parcours.]]></description>
 	<version>1.0.0</version>
 	<licence>agpl</licence>
 	<author mail="contact@cubeconception.fr" homepage="http://www.cubeconception.fr">Scaviner Vincent-chatGPT</author>
