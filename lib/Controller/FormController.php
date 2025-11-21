@@ -174,6 +174,86 @@ class FormController extends Controller
     }
 
 
+#[NoCSRFRequired]
+#[PublicPage]
+public function submitEmbed(int $parcoursId, string $email): DataResponse
+{
+    try {
+        if ($email === '' || $parcoursId <= 0) {
+            return new DataResponse(['error' => 'Email ou parcours manquant.'], Http::STATUS_BAD_REQUEST);
+        }
+
+        // Vérifie si l'email est déjà inscrit à ce parcours
+        if ($this->emailService->isAlreadyInscribed($email, $parcoursId)) {
+
+            $newInscriptionId = $this->handleRepassRule($email, $parcoursId);
+
+            if ($newInscriptionId !== null) {
+                $url = $this->urlGenerator->linkToRoute('emailbridge.form.confirmation', [
+                    'inscriptionId' => $newInscriptionId
+                ]);
+                return new DataResponse([
+                    'status' => 'redirect_repass',
+                    'redirect' => $url
+                ], Http::STATUS_OK);
+            }
+
+            $url = $this->urlGenerator->linkToRoute('emailbridge.form.alreadyRegistered', [
+                'email' => $email,
+                'parcoursId' => $parcoursId
+            ]);
+            return new DataResponse([
+                'status' => 'already_subscribed',
+                'redirect' => $url
+            ]);
+        }
+
+        // Détermine côté serveur si bypass actif pour ce parcours
+        $bypassActive = $this->emailService->isBypassEnabled($parcoursId);
+
+        if ($bypassActive) {
+            $isKnown = $this->sequenceService->isEmailKnown($email);
+
+            if ($isKnown) {
+                $inscriptionId = $this->sequenceService->createInscriptionDirect($email, $parcoursId);
+                if ($inscriptionId) {
+                    $this->sequenceService->scheduleEmailsForInscription($inscriptionId);
+                    return new DataResponse([
+                        'status' => 'success',
+                        'message' => 'Inscription directe effectuée (bypass, email connu).'
+                    ], Http::STATUS_OK);
+                }
+                return new DataResponse(['error' => 'Impossible de créer l\'inscription directe.'], Http::STATUS_INTERNAL_SERVER_ERROR);
+            } else {
+                $this->emailService->sendBypassConfirmationEmail($email, $parcoursId);
+                return new DataResponse([
+                    'status' => 'pending',
+                    'message' => 'Confirmation requise (bypass, email inconnu).'
+                ], Http::STATUS_OK);
+            }
+        }
+
+        // Mode normal (inscription classique)
+        $this->emailService->storeAndSend(
+            $email,
+            $this->emailService->getDocumentUrlForParcours($parcoursId),
+            $parcoursId
+        );
+
+        return new DataResponse([
+            'status' => 'ok',
+            'message' => "Merci ! Vérifiez votre email pour confirmer (parcours $parcoursId)."
+        ], Http::STATUS_OK);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('FormController::submitEmbed error: ' . $e->getMessage(), ['exception' => $e]);
+        return new DataResponse([
+            'error' => 'Erreur lors de la soumission : ' . $e->getMessage()
+        ], Http::STATUS_INTERNAL_SERVER_ERROR);
+    }
+}
+
+
     #[NoCSRFRequired]
     #[PublicPage]
     public function confirm(): Response

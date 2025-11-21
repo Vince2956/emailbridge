@@ -3,69 +3,91 @@
 namespace OCA\EmailBridge\Controller;
 
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\RawResponse;
+use OCP\AppFramework\Http;
 use OCP\IRequest;
-use OCA\EmailBridge\Service\FormService; // ton service pour récupérer les infos formulaire
+use OCA\EmailBridge\Service\EmailService;
+use OCA\EmailBridge\Controller\FormController;
 
 class EmbedController extends Controller {
 
-    private $formService;
+    private EmailService $emailService;
+    private FormController $formController;
 
-    public function __construct($AppName, IRequest $request, FormService $formService) {
+    public function __construct(
+        string $AppName,
+        IRequest $request,
+        EmailService $emailService,
+        FormController $formController
+    ) {
         parent::__construct($AppName, $request);
-        $this->formService = $formService;
+        $this->emailService = $emailService;
+        $this->formController = $formController;
     }
 
     /**
-     * Retourne le HTML minimal du formulaire pour intégration externe.
-     * PAS de template Nextcloud, pas de header, pas de scripts NC.
+     * Ajoute les headers CORS nécessaires
+     */
+    private function cors(RawResponse|DataResponse $response): RawResponse|DataResponse {
+        $origin = $this->request->getHeader('Origin');
+        if ($origin) {
+            $response->addHeader('Access-Control-Allow-Origin', $origin); // ou '*' si tu veux
+        }
+        $response->addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
+        $response->addHeader('Access-Control-Allow-Credentials', 'true');
+        return $response;
+    }
+
+    /**
+     * OPTIONS / Préflight
      *
      * @NoAdminRequired
      * @NoCSRFRequired
      */
-    public function getFormEmbed($id) {
-        $parcours = $this->formService->getById($id);
+    public function options(): DataResponse {
+        return $this->cors(new DataResponse([], Http::STATUS_NO_CONTENT));
+    }
 
-        if (!$parcours) {
-            return new DataResponse("Formulaire introuvable", 404);
+    /**
+     * Sert le fichier embed.js avec CORS
+     *
+     * @NoCSRFRequired
+     * @PublicPage
+     */
+    public function js(): RawResponse {
+        $path = \OC::$SERVERROOT . '/apps/emailbridge/js/embed.js';
+        if (!file_exists($path)) {
+            return new RawResponse('Fichier introuvable', 404);
         }
 
-        // HTML minimal autonome
-        $html = '
-            <form id="emailbridge-form" data-id="'.intval($id).'">
-                <input type="email" name="email" required placeholder="Votre email">
-                <button type="submit">Envoyer</button>
-            </form>
-            <div id="emailbridge-result"></div>
-        ';
+        $content = file_get_contents($path);
 
-        return new DataResponse([
-            'html' => $html
-        ]);
+        $response = new RawResponse($content, 200, ['Content-Type' => 'application/javascript']);
+        return $this->cors($response);
     }
 
     /**
-     * Soumission externe
+     * POST → Soumission externe depuis l'embed
      *
      * @NoAdminRequired
      * @NoCSRFRequired
+     * @PublicPage
      */
-    public function submitExternal($id) {
+    public function submitExternal(int $parcoursId): DataResponse {
         $email = $this->request->getParam('email');
 
         if (!$email) {
-            return new DataResponse([
+            return $this->cors(new DataResponse([
                 'status' => 'error',
                 'message' => 'Email manquant'
-            ], 400);
+            ], 400));
         }
 
-        $ok = $this->formService->handleSubmission($id, $email);
+        // Appelle directement la méthode submitEmbed du FormController
+        $response = $this->formController->submitEmbed($parcoursId, $email);
 
-        return new DataResponse([
-            'status' => $ok ? 'ok' : 'error',
-            'message' => $ok ? 'Email enregistré ✔️' : 'Erreur lors de l’enregistrement'
-        ]);
+        return $this->cors($response);
     }
 }

@@ -13,12 +13,12 @@ use OCP\IConfig;
 use OCA\EmailBridge\Controller\PageController;
 use OCA\EmailBridge\Controller\FormController;
 use OCA\EmailBridge\Controller\SequenceController;
+use OCA\EmailBridge\Controller\EmbedController;
+use OCA\EmailBridge\Controller\TrackingController;
 use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
-use OCA\EmailBridge\Controller\TrackingController;
-use OCA\EmailBridge\AppInfo\StartupCheck;
 
 class Application extends App
 {
@@ -31,7 +31,7 @@ class Application extends App
         $container = $this->getContainer();
 
         // ----------------------------
-        // Services et contrôleurs
+        // Services
         // ----------------------------
         $container->registerService(EmailService::class, function ($c) {
             return new EmailService(
@@ -51,10 +51,7 @@ class Application extends App
                 $c->query(LoggerInterface::class),
                 $c->query(EmailService::class)
             );
-
-            $emailService = $c->query(EmailService::class);
-            $emailService->setSequenceService($service);
-
+            $c->query(EmailService::class)->setSequenceService($service);
             return $service;
         });
 
@@ -67,6 +64,9 @@ class Application extends App
             );
         });
 
+        // ----------------------------
+        // Controllers
+        // ----------------------------
         $container->registerService(PageController::class, function ($c) {
             return new PageController(
                 self::APP_ID,
@@ -102,17 +102,14 @@ class Application extends App
             );
         });
 
-        $container->registerService(EmailSenderJob::class, function ($c) {
-            return new EmailSenderJob(
-                $c->query(ITimeFactory::class),
-                $c->query(IDBConnection::class),
-                $c->query(LoggerInterface::class),
+        $container->registerService(EmbedController::class, function ($c) {
+            return new EmbedController(
+                self::APP_ID,
+                $c->query('Request'),
                 $c->query(EmailService::class),
-                $c->query(SequenceService::class),
-                $c->query(IConfig::class)
+                $c->query(FormController::class)
             );
         });
-
 
         $container->registerService(TrackingController::class, function ($c) {
             return new TrackingController(
@@ -126,12 +123,24 @@ class Application extends App
             );
         });
 
+        $container->registerService(EmailSenderJob::class, function ($c) {
+            return new EmailSenderJob(
+                $c->query(ITimeFactory::class),
+                $c->query(IDBConnection::class),
+                $c->query(LoggerInterface::class),
+                $c->query(EmailService::class),
+                $c->query(SequenceService::class),
+                $c->query(IConfig::class)
+            );
+        });
 
+        // ----------------------------
+        // Startup check
+        // ----------------------------
         $startupCheck = new StartupCheck(
             $container->query(IDBConnection::class),
             $container->query(LoggerInterface::class)
         );
         $startupCheck->checkBackgroundJob();
-
     }
 }
