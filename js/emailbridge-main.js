@@ -175,13 +175,13 @@ function renderParcours() {
 	const shortcodeCode = `[emailbridge id="${p.id}" url="${baseUrl}"]`;
 
 	const htmlCode = `
+	<script>
+	  window.EMAILBRIDGE_API_ENDPOINT = '${baseUrl}/index.php/apps/emailbridge/external/submit/{id}';
+	</script>
+
 	<div id="emailbridge-form-${p.id}"></div>
-	
-	<script 
-	    src="${baseUrl}/apps/emailbridge/embed.js"
-	    data-id="${p.id}"
-	    data-server="${baseUrl}"
-	></script>
+
+	<script src="${baseUrl}/index.php/apps/emailbridge/embed.js"></script>
 	`.trim();
 	
 	// Gestion du copier/coller
