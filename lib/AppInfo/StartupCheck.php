@@ -20,29 +20,29 @@ class StartupCheck
     }
 
     public function checkBackgroundJob(): void
-    {
-        $config = \OC::$server->getSystemConfig();
-        $jobList = \OC::$server->getJobList();
+{
+    $config = \OC::$server->getSystemConfig();
+    $jobList = \OC::$server->getJobList();
 
-        // Vérifie si EmailSenderJob est enregistré
-        if (!$jobList->has(EmailSenderJob::class, [])) {
-            $this->logger->info("EmailBridge: EmailSenderJob not registered. Registering automatically.");
-            $jobList->add(EmailSenderJob::class, []);
-        }
-
-        // Vérifie si le mode est cron et si le cron a été exécuté récemment
-        $mode = $config->getValue('backgroundjobs_mode', 'ajax');
- 
-        if ($mode === 'cron') {
-            // Optionnel : on peut vérifier la dernière exécution pour être sûr
-            $lastCron = $config->getSystemValue('cron_last_run', 0); // timestamp
-            $diffMinutes = (time() - $lastCron) / 60;
-
-            if ($diffMinutes > 30) { // pas de cron depuis >30min
-                $this->logger->warning("EmailBridge: Background job mode is 'cron' but cron has not run in the last 30 minutes.");
-            }
-        } else {
-            $this->logger->warning("EmailBridge: Background job mode is not set to 'cron'. Please configure it in Nextcloud.");
-        }
+    if (!$jobList->has(EmailSenderJob::class, [])) {
+        $this->logger->info("EmailBridge: EmailSenderJob not registered. Registering automatically.");
+        $jobList->add(EmailSenderJob::class, []);
     }
+
+    $mode = $config->getValue('backgroundjobs_mode', 'ajax');
+
+    if ($mode === 'cron') {
+        $lastCron = (int)$config->getValue('cron_last_run', 0); // OK pour NC 32
+        $diffMinutes = (time() - $lastCron) / 60;
+
+        if ($diffMinutes > 30) {
+            $this->logger->warning(
+                "EmailBridge: Background job mode is 'cron' but cron has not run in the last 30 minutes."
+            );
+        }
+    } else {
+        $this->logger->warning("EmailBridge: Background job mode is not set to 'cron'. Please configure it in Nextcloud.");
+    }
+}
+
 }
