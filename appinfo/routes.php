@@ -11,15 +11,14 @@ return [
         ['name' => 'form#confirm', 'url' => '/confirm/{token}', 'verb' => 'GET'],
 
 	// ---- EMBED / SITE EXTERNE ----
+        // JS embarqué
+        ['name' => 'embed#js', 'url' => '/embed.js', 'verb' => 'GET'],
 
         // POST → Soumission externe
         ['name' => 'embed#submitExternal', 'url' => '/external/submit/{parcoursId}', 'verb' => 'POST'],
 
         // OPTIONS → CORS préflight
         ['name' => 'embed#options', 'url' => '/external/{path}', 'verb' => 'OPTIONS', 'requirements' => ['path' => '.+']],
-
-        // JS embarqué
-        ['name' => 'embed#js', 'url' => '/embed.js', 'verb' => 'GET'],
 
         // Redirections liées à confirmation
         ['name' => 'form#expired',  'url' => '/expired',  'verb' => 'GET'],

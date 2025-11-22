@@ -3,9 +3,8 @@
 namespace OCA\EmailBridge\Controller;
 
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\RawResponse;
-use OCP\AppFramework\Http;
 use OCP\IRequest;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\Controller\FormController;
@@ -29,14 +28,14 @@ class EmbedController extends Controller {
     /**
      * Ajoute les headers CORS nécessaires
      */
-    private function cors(RawResponse|DataResponse $response): RawResponse|DataResponse {
-        $origin = $this->request->getHeader('Origin');
-        if ($origin) {
-            $response->addHeader('Access-Control-Allow-Origin', $origin); // ou '*' si tu veux
-        }
+    private function cors(DataResponse $response): DataResponse {
+        $origin = $this->request->getHeader('Origin') ?? '*';
+
+        $response->addHeader('Access-Control-Allow-Origin', $origin);
         $response->addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
         $response->addHeader('Access-Control-Allow-Credentials', 'true');
+
         return $response;
     }
 
@@ -47,29 +46,47 @@ class EmbedController extends Controller {
      * @NoCSRFRequired
      */
     public function options(): DataResponse {
-        return $this->cors(new DataResponse([], Http::STATUS_NO_CONTENT));
+        return $this->cors(new DataResponse([], 204));
     }
 
     /**
-     * Sert le fichier embed.js avec CORS
+     * Sert le fichier embed.js
      *
      * @NoCSRFRequired
      * @PublicPage
      */
-    public function js(): RawResponse {
+    public function js(): DataDisplayResponse {
         $path = \OC::$SERVERROOT . '/apps/emailbridge/js/embed.js';
+
         if (!file_exists($path)) {
-            return new RawResponse('Fichier introuvable', 404);
+            return new DataDisplayResponse(
+                "embed.js introuvable",
+                404,
+                ['Content-Type' => 'text/plain']
+            );
         }
 
         $content = file_get_contents($path);
 
-        $response = new RawResponse($content, 200, ['Content-Type' => 'application/javascript']);
-        return $this->cors($response);
+        $response = new DataDisplayResponse(
+            $content,
+            200,
+            ['Content-Type' => 'application/javascript']
+        );
+
+        // CORS dynamique
+        $origin = $this->request->getHeader('Origin') ?? '*';
+        $response->addHeader('Access-Control-Allow-Origin', $origin);
+        $response->addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
+        $response->addHeader('Access-Control-Allow-Credentials', 'true');
+
+        return $response;
     }
 
+
     /**
-     * POST → Soumission externe depuis l'embed
+     * POST → Soumission externe
      *
      * @NoAdminRequired
      * @NoCSRFRequired
@@ -85,7 +102,6 @@ class EmbedController extends Controller {
             ], 400));
         }
 
-        // Appelle directement la méthode submitEmbed du FormController
         $response = $this->formController->submitEmbed($parcoursId, $email);
 
         return $this->cors($response);
