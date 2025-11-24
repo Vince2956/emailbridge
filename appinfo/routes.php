@@ -67,6 +67,9 @@ return [
 	['name' => 'sequence#redirectInscription', 'url' => '/inscription/{inscriptionId}/redirect-sequence', 'verb' => 'POST'],
 	['name' => 'sequence#getAllParcours', 'url' => '/parcours/all', 'verb' => 'GET'],
 
+	//Suppression de base de donnée
+	['name' => 'page#resetLine', 'url' => '/inscription/{inscriptionId}/reset-line', 'verb' => 'POST'],
+
 	// Tracking (ouverts / clics)
 	['name' => 'tracking#trackOpen', 'url' => '/tracking/open', 'verb' => 'GET', 'defaults' => [],],
 	['name' => 'tracking#click', 'url' => '/tracking/click', 'verb' => 'GET', 'defaults' => [],]
