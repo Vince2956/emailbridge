@@ -1128,16 +1128,15 @@ function renderStatsChart(emails) {
 // Ouvre la modale Gestion et charge les inscriptions
 async function openGestionModal(parcoursId) {
     try {
-        // --- Récupération des inscriptions du parcours ---
-	const res = await fetch(getUrl(`/apps/emailbridge/parcours/${parcoursId}/inscriptions`));
+        // --- Récupération des inscriptions ---
+        const res = await fetch(getUrl(`/apps/emailbridge/parcours/${parcoursId}/inscriptions`));
         const data = await res.json();
-
         if (data.status !== 'ok') {
             alert('Erreur lors du chargement des inscriptions.');
             return;
         }
 
-        // Vide le tableau existant
+        // --- Vide le tableau existant ---
         const tbody = document.getElementById('gestion-table-body');
         const finisherBody = document.getElementById('finisher-table-body');
         tbody.innerHTML = '';
@@ -1145,50 +1144,75 @@ async function openGestionModal(parcoursId) {
 
         // --- Remplit le tableau ---
         data.inscriptions.forEach(insc => {
+            // Détermine si c’est un finisher
+            const isFinisher = insc.prochain_mail === null && insc.dernier_mail !== null;
 
-// 👉 Détermine si c’est un finisher
-    const isFinisher = insc.prochain_mail === null && insc.dernier_mail !== null;
+            if (isFinisher) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${insc.id}</td>
+                    <td>${insc.email}</td>
+                    <td>${insc.dernier_mail.sujet}</td>
+                    <td>${formatDate(insc.dernier_mail.date)}</td>
+                    <td><button class="delete-line-btn">🗑️ Supprimer</button></td>
+                `;
+                finisherBody.appendChild(tr);
 
-if (isFinisher) {
-        // --- Ajoute au tableau Finisher ---
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${insc.id}</td>
-            <td>${insc.email}</td>
-            <td>${insc.dernier_mail.sujet}</td>
-            <td>${formatDate(insc.dernier_mail.date)}</td>
-        `;
-        finisherBody.appendChild(tr);
-        return; // on ne l'affiche pas dans la table principale
-    }
+                // Bouton supprimer ligne
+                tr.querySelector('.delete-line-btn').addEventListener('click', async () => {
+                    if (!confirm(`Supprimer l'inscription de ${insc.email} ?`)) return;
+                    const res = await fetch(getUrl(`/apps/emailbridge/inscription/${insc.id}/reset-line`), {
+                        method: 'POST'
+                    });
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                        tr.remove(); // retire la ligne de la table
+                    } else {
+                        alert('Erreur : ' + data.message);
+                    }
+                });
+
+                return; // ne pas l'afficher dans la table principale
+            }
 
             const tr = document.createElement('tr');
-            tr.classList.add(insc.statut); // ajoute class en_cours / termine / arrete
-
+            tr.classList.add(insc.statut);
             tr.innerHTML = `
-            <td>${insc.id}</td>
-    	   <td>${insc.email}</td>
-            <td>
-        		${insc.dernier_mail ? `
-         	<div><strong>${insc.dernier_mail.sujet}</strong></div>
-         	<div class="msg-date">${formatDate(insc.dernier_mail.date)}</div>
-        		` : '-'}
-    	    </td>
-    	    <td>
-        		${insc.prochain_mail ? `
-         	   <div><strong>${insc.prochain_mail.sujet}</strong></div>
-         	   <div class="msg-date">${formatDate(insc.prochain_mail.date)}</div>
-        		` : '-'}
-    	</td>
-    	<td>${insc.autres_parcours.map(p => p.titre).join(', ') || '-'}</td>
-    	<td class="action-col">
-    	    <button class="stop-seq-btn">⏹️ Stop</button>
-    	    <button class="stop-all-btn">🛑 StopAll</button>
-    	    <button class="redirect-btn">➡️ Rediriger</button>
-    	</td>
-	`;
-
+                <td>${insc.id}</td>
+                <td>${insc.email}</td>
+                <td>
+                    ${insc.dernier_mail ? `
+                        <div><strong>${insc.dernier_mail.sujet}</strong></div>
+                        <div class="msg-date">${formatDate(insc.dernier_mail.date)}</div>` : '-'}
+                </td>
+                <td>
+                    ${insc.prochain_mail ? `
+                        <div><strong>${insc.prochain_mail.sujet}</strong></div>
+                        <div class="msg-date">${formatDate(insc.prochain_mail.date)}</div>` : '-'}
+                </td>
+                <td>${insc.autres_parcours.map(p => p.titre).join(', ') || '-'}</td>
+                <td class="action-col">
+                    <button class="stop-seq-btn">⏹️ Stop</button>
+                    <button class="stop-all-btn">🛑 StopAll</button>
+                    <button class="redirect-btn">➡️ Rediriger</button>
+                    <button class="delete-line-btn">🗑️ Supprimer</button>
+                </td>
+            `;
             tbody.appendChild(tr);
+
+            // Bouton supprimer ligne
+            tr.querySelector('.delete-line-btn').addEventListener('click', async () => {
+                if (!confirm(`Supprimer l'inscription de ${insc.email} ?`)) return;
+                const res = await fetch(getUrl(`/apps/emailbridge/inscription/${insc.id}/reset-line`), {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    tr.remove(); // retire la ligne de la table
+                } else {
+                    alert('Erreur : ' + data.message);
+                }
+            });
 
             // --- Bouton Stop Séquence (une seule séquence) ---
             tr.querySelector('.stop-seq-btn').addEventListener('click', async () => {
@@ -1213,25 +1237,20 @@ if (isFinisher) {
             });
         });
 
-// --- Charger les emails + stats pour le graphique ---
-const emailsResponse = await fetch(OC.generateUrl(`/apps/emailbridge/parcours/${parcoursId}/emails`));
-const emailsData = await emailsResponse.json();
+        // --- Charger les emails + stats pour le graphique ---
+        const emailsResponse = await fetch(OC.generateUrl(`/apps/emailbridge/parcours/${parcoursId}/emails`));
+        const emailsData = await emailsResponse.json();
+        if (emailsData.status === 'ok' && Array.isArray(emailsData.emails)) {
+            renderStatsChart(emailsData.emails);
+        }
 
-if (emailsData.status === 'ok' && Array.isArray(emailsData.emails)) {
-    renderStatsChart(emailsData.emails);
-} else {
-    console.warn('Aucune donnée email pour ce parcours');
-}
-
-// Affiche la section finisher seulement si elle contient des données
-// --- Si des finisher ont été ajoutés, affiche la section ---
-const finisherSection = document.getElementById('finisher-section');
-if (finisherBody.children.length > 0) {
-    finisherSection.classList.remove('hidden');
-} else {
-    finisherSection.classList.add('hidden');
-}
-
+        // --- Affiche les finishers ---
+        const finisherSection = document.getElementById('finisher-section');
+        if (finisherBody.children.length > 0) {
+            finisherSection.classList.remove('hidden');
+        } else {
+            finisherSection.classList.add('hidden');
+        }
 
         // --- Ouvre la modale ---
         const modal = document.getElementById('modal-gestion');
