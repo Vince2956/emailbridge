@@ -19,6 +19,11 @@ use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
+//use OCA\EmailBridge\AppInfo\Uninstall;
+use OCP\App\Events\AppUninstalledEvent;
+use OCP\EventDispatcher\IEventDispatcher;
+use OCA\EmailBridge\Listener\UninstallListener;
+
 
 class Application extends App
 {
@@ -133,6 +138,20 @@ class Application extends App
                 $c->query(IConfig::class)
             );
         });
+
+        // ----------------------------
+        // Enregistrer l’Uninstall
+        // ----------------------------
+        //$this->registerUninstallClass(Uninstall::class);
+
+	// ----------------------------
+	// Enregistrer l’écouteur d’uninstall
+	// ----------------------------
+	$dispatcher = $container->query(IEventDispatcher::class);
+	$dispatcher->addServiceListener(
+	    AppUninstalledEvent::class,
+	    UninstallListener::class
+	);
 
         // ----------------------------
         // Startup check

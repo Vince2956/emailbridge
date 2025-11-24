@@ -274,4 +274,33 @@ class PageController extends Controller
     }
 
 
+
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function resetLine(int $inscriptionId): DataResponse {
+    try {
+        // 1) Récupérer le liste_id associé
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('liste_id')
+           ->from('emailbridge_inscription')
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($inscriptionId)));
+
+        $listeId = $qb->executeQuery()->fetchOne();
+
+        if (!$listeId) {
+            throw new \Exception("Aucune inscription trouvée");
+        }
+
+        // 2) Supprimer dans la table liste
+        $qb2 = $this->db->getQueryBuilder();
+        $qb2->delete('emailbridge_liste')
+            ->where($qb2->expr()->eq('id', $qb2->createNamedParameter($listeId)))
+            ->executeStatement();
+
+        return new DataResponse(['status' => 'ok']);
+    } catch (\Throwable $e) {
+        return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
 }
