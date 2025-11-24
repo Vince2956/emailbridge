@@ -28,6 +28,6 @@
 
 	<!-- Migrations -->
 	<migrations>
-		<migration version="20251013">OCA\EmailBridge\Migration\Version20251013</migration>
+		<migration version="20251020">OCA\EmailBridge\Migration\Version20251020</migration>
 	</migrations>
 </info>
