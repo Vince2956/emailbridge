@@ -26,7 +26,7 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_parcours')) {
             $table = $schema->createTable('emailbridge_parcours');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
             $table->addColumn('titre', Types::STRING, ['length' => 255]);
             $table->addColumn('description', Types::TEXT, ['notnull' => false]);
             $table->addColumn('created_at', $typeDateTime);
@@ -43,9 +43,9 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_liste')) {
             $table = $schema->createTable('emailbridge_liste');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
             $table->addColumn('email', Types::STRING, ['length' => 255]);
-            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('parcours_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('token', Types::STRING, ['length' => 255]);
             $table->addColumn('confirmed', Types::BOOLEAN, ['default' => 0, 'notnull' => false]);
             $table->addColumn('created_at', $typeDateTime);
@@ -56,7 +56,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->addUniqueIndex(['token'], 'liste_token');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_parcours',
+                'oc_emailbridge_parcours',
                 ['parcours_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -69,9 +69,9 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_inscription')) {
             $table = $schema->createTable('emailbridge_inscription');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
-            $table->addColumn('liste_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
+            $table->addColumn('parcours_id', Types::INTEGER, ['unsigned' => true]);
+            $table->addColumn('liste_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('email', Types::STRING, ['length' => 255]);
             $table->addColumn('date_inscription', $typeDateTime);
             $table->addColumn('bypass_file', Types::BOOLEAN, ['default' => 0, 'notnull' => false]);
@@ -84,7 +84,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->addIndex(['liste_id'], 'inscription_lst');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_parcours',
+                'oc_emailbridge_parcours',
                 ['parcours_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -92,7 +92,7 @@ class Version20251020 extends SimpleMigrationStep
             );
 
             $table->addForeignKeyConstraint(
-                'emailbridge_liste',
+                'oc_emailbridge_liste',
                 ['liste_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -105,8 +105,8 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_sequence')) {
             $table = $schema->createTable('emailbridge_sequence');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
+            $table->addColumn('parcours_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('sujet', Types::STRING, ['length' => 255]);
             $table->addColumn('contenu', Types::TEXT);
             $table->addColumn('send_day', Types::INTEGER, ['default' => 0]);
@@ -119,7 +119,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->setPrimaryKey(['id'], 'sequence_pk');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_parcours',
+                'oc_emailbridge_parcours',
                 ['parcours_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -132,9 +132,9 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_envoi')) {
             $table = $schema->createTable('emailbridge_envoi');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('inscription_id', Types::INTEGER, ['notnull' => true]);
-            $table->addColumn('sequence_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
+            $table->addColumn('inscription_id', Types::INTEGER, ['unsigned' => true]);
+            $table->addColumn('sequence_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('send_at', $typeDateTime);
             $table->addColumn('status', Types::STRING, ['length' => 20, 'default' => 'en_attente']);
             $table->addColumn('attempts', Types::INTEGER, ['default' => 0]);
@@ -148,7 +148,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->addIndex(['send_at'], 'envoi_send');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_inscription',
+                'oc_emailbridge_inscription',
                 ['inscription_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -156,7 +156,7 @@ class Version20251020 extends SimpleMigrationStep
             );
 
             $table->addForeignKeyConstraint(
-                'emailbridge_sequence',
+                'oc_emailbridge_sequence',
                 ['sequence_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -169,8 +169,8 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_stats')) {
             $table = $schema->createTable('emailbridge_stats');
-            $table->addColumn('email_id', Types::INTEGER, ['notnull' => true]);
-            $table->addColumn('inscription_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('email_id', Types::INTEGER, ['unsigned' => true]);
+            $table->addColumn('inscription_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('sent', Types::INTEGER, ['default' => 0]);
             $table->addColumn('opened', Types::INTEGER, ['default' => 0]);
             $table->addColumn('clicked', Types::INTEGER, ['default' => 0]);
@@ -183,7 +183,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->addIndex(['inscription_id'], 'stats_ins');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_sequence',
+                'oc_emailbridge_sequence',
                 ['email_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -191,7 +191,7 @@ class Version20251020 extends SimpleMigrationStep
             );
 
             $table->addForeignKeyConstraint(
-                'emailbridge_inscription',
+                'oc_emailbridge_inscription',
                 ['inscription_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -204,8 +204,8 @@ class Version20251020 extends SimpleMigrationStep
         // ----------------------------
         if (!$schema->hasTable('emailbridge_form')) {
             $table = $schema->createTable('emailbridge_form');
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->addColumn('parcours_id', Types::INTEGER, ['notnull' => true]);
+            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true, 'unsigned' => true]);
+            $table->addColumn('parcours_id', Types::INTEGER, ['unsigned' => true]);
             $table->addColumn('titre', Types::STRING, ['length' => 255, 'notnull' => false]);
             $table->addColumn('type', Types::STRING, ['length' => 20]);
             $table->addColumn('contenu_text', Types::TEXT, ['notnull' => false]);
@@ -220,7 +220,7 @@ class Version20251020 extends SimpleMigrationStep
             $table->addIndex(['parcours_id'], 'form_par');
 
             $table->addForeignKeyConstraint(
-                'emailbridge_parcours',
+                'oc_emailbridge_parcours',
                 ['parcours_id'],
                 ['id'],
                 ['onDelete' => 'CASCADE'],
@@ -231,4 +231,3 @@ class Version20251020 extends SimpleMigrationStep
         return $schema;
     }
 }
-
