@@ -140,11 +140,6 @@ class Application extends App
         });
 
         // ----------------------------
-        // Enregistrer l’Uninstall
-        // ----------------------------
-        $this->registerUninstallClass(Uninstall::class);
-
-        // ----------------------------
         // Startup check
         // ----------------------------
         $startupCheck = new StartupCheck(
