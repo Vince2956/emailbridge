@@ -31,9 +31,4 @@
 		<migration version="20251020">OCA\EmailBridge\Migration\Version20251020</migration>
 	</migrations>
 
-	<!-- Uninstall -->
-	<uninstall>
-		<class>OCA\EmailBridge\AppInfo\Uninstall</class>
-		<step>1</step>
-	</uninstall>
 </info>
