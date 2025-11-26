@@ -31,4 +31,9 @@
 		<migration version="20251020">OCA\EmailBridge\Migration\Version20251020</migration>
 	</migrations>
 
+	<!-- Uninstall -->
+	<uninstall>
+	    <step>OCA\EmailBridge\Migration\DropAllTables</step>
+	</uninstall>
+
 </info>

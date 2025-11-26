@@ -19,7 +19,6 @@ use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
-//use OCA\EmailBridge\AppInfo\Uninstall;
 use OCP\App\Events\AppUninstalledEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 
