@@ -50,17 +50,22 @@ class Uninstall implements IRepairStep {
             }
         }
 
-        /** ------------------------------
-         *  2) SUPPRESSION DES APPCONFIG
-         * ------------------------------- */
-        try {
-            $this->config->deleteApp('emailbridge');
-            $output->info("AppConfig cleaned");
-            $this->logger->info("EmailBridge: removed appconfig entries");
-        } catch (\Throwable $e) {
-            $output->warning("Error cleaning appconfig: " . $e->getMessage());
-            $this->logger->error("EmailBridge error appconfig: " . $e->getMessage());
-        }
+	/** ------------------------------
+	 *  2) SUPPRESSION DES APPCONFIG
+	 * ------------------------------- */
+	try {
+	    $configKeys = $this->config->getAppKeys('emailbridge');
+
+	    foreach ($configKeys as $key) {
+	        $this->config->deleteAppValue('emailbridge', $key);
+	    }
+
+	    $output->info("AppConfig cleaned");
+	    $this->logger->info("EmailBridge: removed appconfig entries");
+	} catch (\Throwable $e) {
+	    $output->warning("Error cleaning appconfig: " . $e->getMessage());
+	    $this->logger->error("EmailBridge error appconfig: " . $e->getMessage());
+	}
 
         /** ------------------------------
          *  3) SUPPRESSION DES MIGRATIONS

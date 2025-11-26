@@ -23,7 +23,6 @@ use OCP\App\Events\AppUninstalledEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 
 
-
 class Application extends App
 {
     public const APP_ID = 'emailbridge';
