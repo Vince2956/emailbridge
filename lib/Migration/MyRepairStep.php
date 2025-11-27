@@ -27,16 +27,6 @@ class MyRepairStep implements IRepairStep {
     public function run(IOutput $output): void {
 
         /** ----------------------------------------------------------------
-         * Vérifier si l’utilisateur veut supprimer les données
-         * ---------------------------------------------------------------- */
-        $deleteData = $this->config->getAppValue('core', 'delete_emailbridge_data', 'no');
-        if ($deleteData !== 'yes') {
-            $output->info("User chose to keep data, skipping manual cleanup");
-            $this->logger->info("EmailBridge uninstall skipped manual cleanup");
-            return; // Quitte la méthode, aucune suppression manuelle
-        }
-
-        /** ----------------------------------------------------------------
          * 1) Suppression manuelle d’éléments non gérés par database.xml
          * ---------------------------------------------------------------- */
         $tables = [
