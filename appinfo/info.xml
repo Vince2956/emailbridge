@@ -33,7 +33,7 @@
 
 	<repair-steps>
 	    <uninstall>
-	        <step>OCA\EmailBridge\Migration\Uninstall</step>
+	        <step>OCA\EmailBridge\Migration\MyRepairStep</step>
 	    </uninstall>
 	</repair-steps>
 
