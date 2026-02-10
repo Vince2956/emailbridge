@@ -86,36 +86,58 @@ class SequenceController extends Controller
 
 
 
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function addEmail(int $parcoursId): DataResponse
-    {
-        $data = $this->request->getParams();
-        $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
-            ->format('Y-m-d H:i:s');
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function addEmail(int $parcoursId): DataResponse
+{
+    $data = $this->request->getParams();
+    $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+        ->format('Y-m-d H:i:s');
 
+    // ===============================
+    // Normalisation des champs
+    // ===============================
+    $sendDay = (int) ($data['send_day'] ?? 0);
+    $delayMinutes = isset($data['delay_minutes']) && is_numeric($data['delay_minutes'])
+        ? (int) $data['delay_minutes']
+        : 0;
 
-        try {
-            $qb = $this->db->getQueryBuilder();
-            $qb->insert('emailbridge_sequence')
-               ->values([
-                   'parcours_id' => $qb->createNamedParameter($parcoursId),
-                   'sujet'       => $qb->createNamedParameter($data['sujet'] ?? 'Nouvel email'),
-                   'contenu'     => $qb->createNamedParameter(json_encode($data['contenu'] ?? [])),
-                   'send_day'    => $qb->createNamedParameter($data['send_day'] ?? 0),
-                   'send_time'   => $qb->createNamedParameter($data['send_time'] ?? null),
-           'created_at'  => $qb->createNamedParameter($nowUtc),
-               'updated_at'  => $qb->createNamedParameter($nowUtc),
-           'delay_minutes' => $qb->createNamedParameter($data['delay_minutes'] ?? null),
-               ])
-               ->executeStatement();
-            $emailId = $this->db->lastInsertId('*PREFIX*emailbridge_sequence');
-            return new DataResponse(['status' => 'ok', 'id' => $emailId]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur addEmail: ' . $e->getMessage());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
+    // Règle métier : si J > 0, le délai n’a pas de sens
+    if ($sendDay > 0) {
+        $delayMinutes = 0;
     }
+
+    try {
+        $qb = $this->db->getQueryBuilder();
+        $qb->insert('emailbridge_sequence')
+           ->values([
+               'parcours_id'   => $qb->createNamedParameter($parcoursId),
+               'sujet'         => $qb->createNamedParameter($data['sujet'] ?? 'Nouvel email'),
+               'contenu'       => $qb->createNamedParameter(json_encode($data['contenu'] ?? [], JSON_THROW_ON_ERROR)),
+               'send_day'      => $qb->createNamedParameter($sendDay),
+               'send_time'     => $qb->createNamedParameter($data['send_time'] ?? null),
+               'delay_minutes' => $qb->createNamedParameter($delayMinutes),
+               'created_at'    => $qb->createNamedParameter($nowUtc),
+               'updated_at'    => $qb->createNamedParameter($nowUtc),
+           ])
+           ->executeStatement();
+
+        $emailId = $this->db->lastInsertId('*PREFIX*emailbridge_sequence');
+
+        return new DataResponse([
+            'status' => 'ok',
+            'id' => $emailId
+        ]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur addEmail: ' . $e->getMessage());
+        return new DataResponse([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -138,51 +160,66 @@ class SequenceController extends Controller
         }
     }
 
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function editEmail(int $parcoursId, int $emailId): DataResponse
-    {
-        $data = [
-            'sujet'         => $this->request->getParam('sujet'),
-            'contenu'       => json_encode($this->request->getParam('contenu') ?? []),
-            'send_day'      => $this->request->getParam('send_day'),
-            'send_time'     => $this->request->getParam('send_time'),
-            'delay_minutes' => $this->request->getParam('delay_minutes'),
-            'updated_at'    => (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s'),
-        ];
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function editEmail(int $parcoursId, int $emailId): DataResponse
+{
+    $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
 
-        // ✅ Si des règles sont envoyées, on les ajoute
-        $rulesParam = $this->request->getParam('rules');
-        if ($rulesParam !== null) {
-            // Le JS envoie un JSON stringifié → on le stocke tel quel (valide pour la colonne TEXT)
-            $data['rules'] = is_string($rulesParam) ? $rulesParam : json_encode($rulesParam);
-        }
+    $data = [
+        'sujet'         => $this->request->getParam('sujet'),
+        'contenu'       => json_encode($this->request->getParam('contenu') ?? [], JSON_THROW_ON_ERROR),
+        'send_day'      => (int) $this->request->getParam('send_day'),
+        'send_time'     => $this->request->getParam('send_time'),
+        'delay_minutes' => null !== $this->request->getParam('delay_minutes') 
+    	    ? (int) $this->request->getParam('delay_minutes') 
+            : 0,
+        'updated_at'    => $nowUtc,
+    ];
 
-        try {
-            $qb = $this->db->getQueryBuilder();
-            $qb->update('emailbridge_sequence')
-               ->set('sujet', $qb->createNamedParameter($data['sujet']))
-               ->set('contenu', $qb->createNamedParameter($data['contenu']))
-               ->set('send_day', $qb->createNamedParameter($data['send_day']))
-               ->set('send_time', $qb->createNamedParameter($data['send_time']))
-               ->set('delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
-               ->set('updated_at', $qb->createNamedParameter($data['updated_at']));
-
-            // ✅ On ajoute la mise à jour de la colonne rules seulement si elle est présente
-            if (isset($data['rules'])) {
-                $qb->set('rules', $qb->createNamedParameter($data['rules']));
-            }
-
-            $qb->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
-               ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)))
-               ->executeStatement();
-
-            return new DataResponse(['success' => true]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur editEmail: ' . $e->getMessage());
-            return new DataResponse(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+    // Règle métier : si send_day > 0, delay_minutes = 0
+    if ($data['send_day'] > 0) {
+        $data['delay_minutes'] = 0;
     }
+
+    // ✅ Gestion des règles si présentes
+    $rulesParam = $this->request->getParam('rules');
+    if ($rulesParam !== null) {
+        $data['rules'] = is_string($rulesParam) ? $rulesParam : json_encode($rulesParam, JSON_THROW_ON_ERROR);
+    }
+
+    try {
+        $qb = $this->db->getQueryBuilder();
+        $qb->update('emailbridge_sequence')
+           ->set('sujet', $qb->createNamedParameter($data['sujet']))
+           ->set('contenu', $qb->createNamedParameter($data['contenu']))
+           ->set('send_day', $qb->createNamedParameter($data['send_day']))
+           ->set('send_time', $qb->createNamedParameter($data['send_time']))
+           ->set('delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
+           ->set('updated_at', $qb->createNamedParameter($data['updated_at']));
+
+        if (isset($data['rules'])) {
+            $qb->set('rules', $qb->createNamedParameter($data['rules']));
+        }
+
+        $qb->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
+           ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)))
+           ->executeStatement();
+
+        return new DataResponse([
+            'status' => 'ok',
+            'id' => $emailId
+        ]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur editEmail: ' . $e->getMessage());
+        return new DataResponse([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 
 
     /**
