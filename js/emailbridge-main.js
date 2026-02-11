@@ -701,6 +701,7 @@ const sendTimeInput = document.getElementById('send_time');
 const delayMinutesInput = document.getElementById('delay_minutes');
 const delayTypeSelect = document.getElementById('delay_type');
 
+/*
 // Ouvre la modale (nouvel email ou édition)
 function openEmailModal(parcoursId, email = null) {
     modalTitle.textContent = email ? 'Modifier un email' : 'Nouvel email';
@@ -776,7 +777,7 @@ if (email?.rules) {
 cancelEmailBtn.addEventListener('click', () => {
     emailModal.classList.add('hidden');
 });
-
+*/
 // Gestion du bouton supprimer
 deleteBtn.addEventListener('click', () => {
     const emailId = emailModal.dataset.emailId;
@@ -1674,79 +1675,63 @@ emailModal.addEventListener("click", function(event) {
 });
 
 
-// Soumettre avec la touche Entrée
-document.getElementById("emailForm").addEventListener("keydown", function(event) {
-  if (event.key === "Enter") {
-    event.preventDefault(); // empêche reload
-    this.requestSubmit();   // déclenche submit
-  }
-});
-
-
 // Sauvegarde de l’email
 emailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 🔸 Avant toute lecture des blocs, on force TinyMCE à sauvegarder le contenu HTML dans les <textarea>
     if (typeof tinymce !== 'undefined') tinymce.triggerSave();
 
-    const emailModal = document.getElementById('emailModal');
-    const hasBlocks = blocksContainer.children.length > 0;
-    if (!hasBlocks) {
-        alert("Veuillez ajouter au moins un bloc avant d’enregistrer.");
+    const parcoursId = document.getElementById('modalParcoursId')?.value;
+    const emailId    = document.getElementById('modalEmailId')?.value;
+
+    if (!parcoursId) {
+        alert("Parcours introuvable");
         return;
     }
 
-    const parcoursId = document.getElementById('modalParcoursId').value;
-    const emailId = document.getElementById('modalEmailId').value;
+    const sujet = document.getElementById('emailSujet')?.value || '';
+    const sendDayVal = parseInt(document.getElementById('emailSendDay')?.value || '0', 10);
+    const sendTimeVal = document.getElementById('emailSendTime')?.value || '';
 
-    const sendDayVal = parseInt(document.getElementById('emailSendDay').value, 10) || 0;
-    const sendTimeVal = document.getElementById('emailSendTime').value || '';
-
-    let delayMinutes;
-    let sendAt = null;
+    let delayMinutes = null;
 
     if (sendDayVal === 0) {
         const delayVal = parseInt(document.getElementById('emailDelayValue')?.value || '0', 10);
         const delayUnit = document.getElementById('emailDelayUnit')?.value;
-        delayMinutes = (delayVal > 0) ? (delayUnit === 'hours' ? delayVal * 60 : delayVal) : 15;
 
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + delayMinutes);
-        sendAt = now.toISOString().slice(0, 19).replace('T', ' ');
-    } else if (sendDayVal > 0 && sendTimeVal) {
-        const [hour, minute] = sendTimeVal.split(':').map(Number);
-        const now = new Date();
-        now.setDate(now.getDate() + sendDayVal);
-        now.setHours(hour, minute, 0, 0);
-        sendAt = now.toISOString().slice(0, 19).replace('T', ' ');
+        if (delayVal > 0) {
+            delayMinutes = delayUnit === 'hours' ? delayVal * 60 : delayVal;
+        } else {
+            delayMinutes = 15;
+        }
     }
 
-    // 🔸 serializeBlocksToJson() lit maintenant les textarea mis à jour par TinyMCE
-    const data = {
-        sujet: document.getElementById('emailSujet').value,
-        contenu: JSON.stringify(serializeBlocksToJson()), // ✅ tinyMCE pris en compte ici
-        send_day: sendDayVal,
-        send_time: sendTimeVal
-    };
-    if (sendDayVal === 0) data.delay_minutes = delayMinutes;
-    if (sendAt) data.send_at = sendAt;
-
-    // --- Règles ---
     const rules = {
         noWeekend: document.getElementById('rule-no-weekend')?.checked || false,
         noHolidays: document.getElementById('rule-no-holidays')?.checked || false,
         redirectTarget: document.getElementById('rule-redirect')?.checked
-            ? document.getElementById('rule-redirect-target').value
+            ? document.getElementById('rule-redirect-target')?.value
             : null,
         ifRepassTarget: document.getElementById('rule-if-repass')?.checked
-            ? document.getElementById('rule-if-repass-target').value
+            ? document.getElementById('rule-if-repass-target')?.value
             : null,
         redirectOnClick: document.getElementById('rule-redirect-on-click')?.checked
-            ? document.getElementById('rule-redirect-on-click-target').value
+            ? document.getElementById('rule-redirect-on-click-target')?.value
             : null
     };
-    data.rules = JSON.stringify(rules);
+
+    const payload = {
+        sujet: sujet,
+        contenu: JSON.stringify(serializeBlocksToJson()),
+        send_day: sendDayVal,
+        send_time: sendTimeVal,
+        rules: JSON.stringify(rules),
+        requesttoken: csrfToken
+    };
+
+    if (delayMinutes !== null) {
+        payload.delay_minutes = delayMinutes;
+    }
 
     const url = emailId
         ? `/apps/emailbridge/parcours/${parcoursId}/emails/${emailId}/edit`
@@ -1755,43 +1740,33 @@ emailForm.addEventListener('submit', async (e) => {
     try {
         const res = await fetch(getUrl(url), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-            body: new URLSearchParams({ ...data, requesttoken: csrfToken })
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'requesttoken': csrfToken
+            },
+            body: new URLSearchParams(payload)
         });
 
         const result = await res.json();
 
-        if (result.status === 'ok' || result.success === true) {
-            const container = document.querySelector(`.emails-list[data-parcours-id="${parcoursId}"]`);
-
-            // Supprime l'ancien email si édition
-            let emailItem = document.querySelector(`.email-item[data-email-id="${emailId}"]`);
-            if (emailItem) emailItem.remove();
-
-            const newEmailId = emailId || result.emailId;
-
-            const emailData = {
-                id: newEmailId,
-                parcoursId,
-                sujet: data.sujet,
-                send_day: data.send_day,
-                send_time: data.send_time,
-                delay_minutes: data.delay_minutes ?? null,
-                rules,
-                stats: { sent:0, opened:0, clicked:0, unsubscribed:0, stopped:0, redirected:0 }
-            };
+        if (result.status === 'ok') {
+            const container = document.querySelector(
+                `.emails-list[data-parcours-id="${parcoursId}"]`
+            );
 
             await loadEmails(parcoursId, container);
-            if (emailModal) emailModal.classList.add('hidden');
 
+            document.getElementById('emailModal')?.classList.add('hidden');
         } else {
-            alert('Erreur: ' + (result.message || 'inconnue'));
+            alert(result.message || "Erreur serveur");
         }
+
     } catch (err) {
-        alert('Erreur réseau');
         console.error(err);
+        alert("Erreur réseau");
     }
 });
+
 
 
 

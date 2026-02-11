@@ -53,7 +53,7 @@ declare(strict_types=1);
   <div class="modal-content">
     <h2 id="emailModalTitle">Créer un email</h2>
 
-    <form id="emailForm">
+    <form id="emailForm" novalidate>
       <input type="hidden" id="modalParcoursId" value="">
       <input type="hidden" id="modalEmailId" value=""> <!-- Pour savoir si c'est édition -->
 
