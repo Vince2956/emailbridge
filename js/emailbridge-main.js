@@ -1679,7 +1679,14 @@ emailModal.addEventListener("click", function(event) {
 emailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    if (typeof tinymce !== 'undefined') tinymce.triggerSave();
+    // --- Sauvegarde le contenu de TinyMCE uniquement si c'est défini ---
+    if (typeof tinymce !== 'undefined' && Array.isArray(tinymce.editors)) {
+        tinymce.editors.forEach(editor => {
+            if (editor && editor.getElement()) {
+                editor.save(); // copie le contenu dans le <textarea> correspondant
+            }
+        });
+    }
 
     const parcoursId = document.getElementById('modalParcoursId')?.value;
     const emailId    = document.getElementById('modalEmailId')?.value;
@@ -1693,19 +1700,15 @@ emailForm.addEventListener('submit', async (e) => {
     const sendDayVal = parseInt(document.getElementById('emailSendDay')?.value || '0', 10);
     const sendTimeVal = document.getElementById('emailSendTime')?.value || '';
 
+    // --- Calcul du delay ---
     let delayMinutes = null;
-
     if (sendDayVal === 0) {
         const delayVal = parseInt(document.getElementById('emailDelayValue')?.value || '0', 10);
         const delayUnit = document.getElementById('emailDelayUnit')?.value;
-
-        if (delayVal > 0) {
-            delayMinutes = delayUnit === 'hours' ? delayVal * 60 : delayVal;
-        } else {
-            delayMinutes = 15;
-        }
+        delayMinutes = (delayVal > 0) ? (delayUnit === 'hours' ? delayVal * 60 : delayVal) : 15;
     }
 
+    // --- Règles d’envoi ---
     const rules = {
         noWeekend: document.getElementById('rule-no-weekend')?.checked || false,
         noHolidays: document.getElementById('rule-no-holidays')?.checked || false,
@@ -1750,12 +1753,8 @@ emailForm.addEventListener('submit', async (e) => {
         const result = await res.json();
 
         if (result.status === 'ok') {
-            const container = document.querySelector(
-                `.emails-list[data-parcours-id="${parcoursId}"]`
-            );
-
+            const container = document.querySelector(`.emails-list[data-parcours-id="${parcoursId}"]`);
             await loadEmails(parcoursId, container);
-
             document.getElementById('emailModal')?.classList.add('hidden');
         } else {
             alert(result.message || "Erreur serveur");
