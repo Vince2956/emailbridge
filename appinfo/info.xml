@@ -15,6 +15,12 @@
 		<nextcloud min-version="30" max-version="32"/>
 	</dependencies>
 
+
+<settings>
+    <admin>OCA\EmailBridge\Settings\EmailBridgeAdmin</admin>
+    <admin-section>OCA\EmailBridge\Sections\EmailBridgeAdmin</admin-section>
+</settings>
+
 	<!-- Navigation -->
 	<navigations>
 		<navigation>

@@ -54,7 +54,8 @@ return [
 	['name' => 'unsubscribe#process', 'url' => '/unsubscribe', 'verb' => 'GET'],
 
 	//déjà inscrit
-	['name' => 'form#alreadyConfirm','url' => '/already-confirmed','verb' => 'GET','controller' => 'FormController','method' => 'alreadyConfirm'],
+	//['name' => 'form#alreadyConfirm','url' => '/already-confirmed','verb' => 'GET','controller' => 'FormController','method' => 'alreadyConfirm'],
+	['name' => 'form#alreadyConfirm', 'url' => '/already-confirmed', 'verb' => 'GET'],
 	['name' => 'form#alreadyRegistered', 'url' => '/already-registered', 'verb' => 'GET'],
 
 	// Stop all sequences pour une inscription (ancien stopSequenceForInscription)
@@ -72,6 +73,10 @@ return [
 
 	// Tracking (ouverts / clics)
 	['name' => 'tracking#trackOpen', 'url' => '/tracking/open', 'verb' => 'GET', 'defaults' => [],],
-	['name' => 'tracking#click', 'url' => '/tracking/click', 'verb' => 'GET', 'defaults' => [],]
+	['name' => 'tracking#click', 'url' => '/tracking/click', 'verb' => 'GET', 'defaults' => [],],
+	
+	//Menu d'administration
+        ['name' => 'admin#export', 'url'  => '/admin/export', 'verb' => 'GET' ],
+        ['name' => 'admin#import', 'url'  => '/admin/import', 'verb' => 'POST'],
     ]
 ];
