@@ -76,7 +76,7 @@ public function saveSettings(): DataResponse {
 
         foreach ($tables as $key => $table) {
             $result = $this->db->executeQuery("SELECT * FROM *PREFIX*$table");
-            $data[$key] = $result->fetchAllAssociative();
+            $data[$key] = $result->fetchAll();
         }
 
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
