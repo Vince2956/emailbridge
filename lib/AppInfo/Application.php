@@ -15,12 +15,11 @@ use OCA\EmailBridge\Controller\FormController;
 use OCA\EmailBridge\Controller\SequenceController;
 use OCA\EmailBridge\Controller\EmbedController;
 use OCA\EmailBridge\Controller\TrackingController;
+use OCA\EmailBridge\Controller\AdminController;
 use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
-use OCP\App\Events\AppUninstalledEvent;
-use OCP\EventDispatcher\IEventDispatcher;
 
 
 class Application extends App
@@ -136,6 +135,15 @@ class Application extends App
                 $c->query(IConfig::class)
             );
         });
+        
+        $container->registerService(AdminController::class, function ($c) {
+    	    return new AdminController(
+        	self::APP_ID,
+        	$c->query('Request'),
+        	$c->query(IDBConnection::class),
+        	$c->query(IConfig::class)
+    	    );
+	});
 
         // ----------------------------
         // Startup check
