@@ -78,5 +78,6 @@ return [
 	//Menu d'administration
         ['name' => 'admin#export', 'url'  => '/admin/export', 'verb' => 'GET' ],
         ['name' => 'admin#import', 'url'  => '/admin/import', 'verb' => 'POST'],
+        ['name' => 'admin#saveSettings', 'url'  => '/admin/save-settings', 'verb' => 'POST'],
     ]
 ];

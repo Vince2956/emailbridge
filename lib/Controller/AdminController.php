@@ -29,39 +29,31 @@ class AdminController extends Controller {
      * Page admin
      * @AdminRequired
      */
-    public function index(): TemplateResponse {
+public function index(): TemplateResponse {
+    $delete = $this->config->getAppValue('emailbridge', 'delete_on_uninstall', '0');
+    $deleteBool = $delete === '1' ? true : false;
 
-        $delete = $this->config->getAppValue(
-            'emailbridge',
-            'delete_on_uninstall',
-            '0'
-        );
+    return new TemplateResponse('emailbridge', 'settings/admin', [
+        'delete_on_uninstall' => $deleteBool
+    ]);
+}
 
-        return new TemplateResponse('emailbridge', 'settings/admin', [
-            'delete_on_uninstall' => $delete === '1'
-        ]);
-    }
 
-    /**
-     * Sauvegarde paramètre
-     * @AdminRequired
-     */
-    public function saveSettings(): DataResponse {
+	/**
+ * Sauvegarde paramètre
+ * @AdminRequired
+ * @NoCSRFRequired  <-- tu peux laisser pour simplifier, ou gérer le token
+ */
+public function saveSettings(): DataResponse {
+    $params = json_decode(file_get_contents('php://input'), true);
 
-        $params = json_decode(file_get_contents('php://input'), true);
+    $delete = !empty($params['delete_on_uninstall']) ? '1' : '0';
 
-        $delete = isset($params['delete_on_uninstall']) && $params['delete_on_uninstall']
-            ? '1'
-            : '0';
+    $this->config->setAppValue('emailbridge', 'delete_on_uninstall', $delete);
 
-        $this->config->setAppValue(
-            'emailbridge',
-            'delete_on_uninstall',
-            $delete
-        );
+    return new DataResponse(['status' => 'ok']);
+}
 
-        return new DataResponse(['status' => 'ok']);
-    }
 
     /**
      * EXPORT

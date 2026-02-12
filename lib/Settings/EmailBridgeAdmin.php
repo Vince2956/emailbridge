@@ -16,9 +16,14 @@ class EmailBridgeAdmin implements ISettings {
     }
 
     public function getForm() {
+        // récupère la valeur sauvegardée
+        $delete = $this->config->getAppValue('emailbridge', 'delete_on_uninstall', '0');
+        $deleteBool = $delete === '1';
+
         $parameters = [
-            'someSetting' => $this->config->getSystemValue('emailbridge_some_setting', true),
+            'delete_on_uninstall' => $deleteBool,
         ];
+
         return new TemplateResponse('emailbridge', 'settings/admin', $parameters, '');
     }
 

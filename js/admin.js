@@ -56,28 +56,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================
     if (settingsForm) {
         settingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-            e.preventDefault();
+    const body = { delete_on_uninstall: deleteCheckbox.checked ? 1 : 0 };
+    console.log('Envoi saveSettings', body);
 
-            const response = await fetch(baseUrl + '/admin/save-settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    requesttoken: OC.requestToken
-                },
-                body: JSON.stringify({
-                    delete_on_uninstall: deleteCheckbox.checked ? 1 : 0
-                })
-            });
+    const response = await fetch(baseUrl + '/admin/save-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', requesttoken: OC.requestToken },
+        body: JSON.stringify(body)
+    });
 
-            const data = await response.json();
+    const data = await response.json();
+    console.log('Réponse saveSettings', data);
 
-            if (data.status === 'ok') {
-                result.innerHTML = '<span style="color:green">Paramètres enregistrés</span>';
-            } else {
-                result.innerHTML = '<span style="color:red">Erreur lors de l’enregistrement</span>';
-            }
-        });
+    if (data.status === 'ok') {
+        result.innerHTML = '<span style="color:green">Paramètres enregistrés</span>';
+    } else {
+        result.innerHTML = '<span style="color:red">Erreur lors de l’enregistrement</span>';
+    }
+});
+
     }
 
 });
