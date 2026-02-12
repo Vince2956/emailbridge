@@ -85,7 +85,6 @@ class SequenceController extends Controller
     }
 
 
-
 #[NoAdminRequired]
 #[NoCSRFRequired]
 public function addEmail(int $parcoursId): DataResponse
@@ -102,9 +101,15 @@ public function addEmail(int $parcoursId): DataResponse
         ? (int) $data['delay_minutes']
         : 0;
 
-    // Règle métier : si J > 0, le délai n’a pas de sens
+    // Règle métier : si send_day > 0, delay_minutes = 0
     if ($sendDay > 0) {
         $delayMinutes = 0;
+    }
+
+    // Gestion des règles si présentes
+    $rules = $data['rules'] ?? null;
+    if (isset($rules)) {
+        $rules = is_string($rules) ? $rules : json_encode($rules, JSON_THROW_ON_ERROR);
     }
 
     try {
@@ -117,11 +122,13 @@ public function addEmail(int $parcoursId): DataResponse
                'send_day'      => $qb->createNamedParameter($sendDay),
                'send_time'     => $qb->createNamedParameter($data['send_time'] ?? null),
                'delay_minutes' => $qb->createNamedParameter($delayMinutes),
+               'rules'         => $qb->createNamedParameter($rules),
                'created_at'    => $qb->createNamedParameter($nowUtc),
                'updated_at'    => $qb->createNamedParameter($nowUtc),
            ])
            ->executeStatement();
 
+        // Récupérer l'ID du nouvel email
         $emailId = $this->db->lastInsertId('*PREFIX*emailbridge_sequence');
 
         return new DataResponse([
