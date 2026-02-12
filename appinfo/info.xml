@@ -5,7 +5,7 @@
 	<name>Email Bridge</name>
 	<summary><![CDATA[Capture d'email pour transmission de contenu de haute valeur]]></summary>
 	<description><![CDATA[Capture d'email pour transmission de contenu de haute valeur stocké sur le cloud, programmation de séquence de messages sur différents parcours.]]></description>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<licence>agpl</licence>
 	<author mail="contact@cubeconception.fr" homepage="http://www.cubeconception.fr">Scaviner Vincent-chatGPT</author>
 	<namespace>EmailBridge</namespace>
@@ -35,6 +35,7 @@
 	<!-- Migrations -->
 	<migrations>
 		<migration version="20251020">OCA\EmailBridge\Migration\Version20251020</migration>
+		<migration version="20260212">OCA\EmailBridge\Migration\Version20260212</migration>
 	</migrations>
 
 	<repair-steps>
