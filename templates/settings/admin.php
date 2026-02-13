@@ -28,18 +28,14 @@ style('emailbridge', 'admin');
         </button>
     </div>
 
-    <hr style="margin:30px 0;">
+   <!-- <hr style="margin:30px 0;">-->
 
 <!-- ============================= -->
 <!-- SETTINGS -->
 <!-- ============================= -->
+<!--
 <h2>Paramètres de désinstallation</h2>
-<hr style="margin:30px 0;">
 
-<h2>Réinitialiser toutes les données EmailBridge</h2>
-<p>Attention : toutes les données (emails, séquences, inscriptions, formulaires) seront supprimées.</p>
-<button id="resetBtn" class="warning">Réinitialiser</button>
-<div id="resetResult" style="margin-top:20px;"></div>
 <form id="settingsForm">
     <input type="hidden" name="requesttoken" value="<?php p($_['requesttoken']); ?>">
 
@@ -58,6 +54,20 @@ style('emailbridge', 'admin');
         </button>
     </div>
 </form>
+-->
+
+<!-- ============================= -->
+<!-- RESET -->
+<!-- ============================= -->
+<hr style="margin:30px 0;">
+
+<h2>Réinitialisation complète</h2>
+<div>
+    <button id="resetBtn" class="critical" style="margin-top:10px;">
+        Réinitialiser toutes les données EmailBridge
+    </button>
+    <div id="resetResult" style="margin-top:15px;"></div>
+</div>
 
 <div id="result" style="margin-top:20px;"></div>
 

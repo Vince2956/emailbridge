@@ -9,8 +9,9 @@ declare(strict_types=1);
 
     <!-- Container principal -->
     <div id="parcours-wrapper"
-         data-parcours='<?= json_encode($_['parcoursData']); ?>'
-         data-create-url="<?= $_['createParcoursUrl']; ?>">
+         data-parcours='<?= htmlspecialchars(json_encode($_['parcoursData'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>'
+         data-create-url="<?= htmlspecialchars($_['createParcoursUrl'], ENT_QUOTES, 'UTF-8'); ?>">
+
 
         <!-- Conteneur flex pour toutes les colonnes (rempli par JS) -->
         <div id="parcours"></div>

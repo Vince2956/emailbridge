@@ -80,19 +80,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // ============================
-    // RESET
-    // ============================
-    document.getElementById('resetBtn')?.addEventListener('click', async () => {
-    if (!confirm("Voulez-vous vraiment réinitialiser toutes les données EmailBridge ?")) return;
+// RESET
+// ============================
+const resetBtn = document.getElementById('resetBtn');
 
-    const resp = await fetch('/index.php/apps/emailbridge/admin/resetData', {
-        method: 'POST'
+if (resetBtn) {
+    resetBtn.addEventListener('click', async () => {
+
+        if (!confirm("⚠️ Voulez-vous vraiment supprimer TOUTES les données EmailBridge ?")) {
+            return;
+        }
+
+        result.innerHTML = 'Réinitialisation en cours…';
+
+        const response = await fetch(baseUrl + '/admin/reset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                requesttoken: OC.requestToken
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+            result.innerHTML = '<span style="color:green">' + data.message + '</span>';
+        } else {
+            result.innerHTML = '<span style="color:red">' + data.message + '</span>';
+        }
     });
-
-    const data = await resp.json();
-
-    document.getElementById('resetResult').textContent = data.message;
-});
+}
 
 
 });
