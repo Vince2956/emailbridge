@@ -78,6 +78,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
     }
+    
+    // ============================
+    // RESET
+    // ============================
+    document.getElementById('resetBtn')?.addEventListener('click', async () => {
+    if (!confirm("Voulez-vous vraiment réinitialiser toutes les données EmailBridge ?")) return;
+
+    const resp = await fetch('/index.php/apps/emailbridge/admin/resetData', {
+        method: 'POST'
+    });
+
+    const data = await resp.json();
+
+    document.getElementById('resetResult').textContent = data.message;
+});
+
 
 });
 

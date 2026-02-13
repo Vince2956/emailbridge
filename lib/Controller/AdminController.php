@@ -153,5 +153,56 @@ public function saveSettings(): DataResponse {
 
         return new DataResponse(['status' => 'ok']);
     }
+    
+    /**
+ * RESET DATA
+ * @AdminRequired
+ * @NoCSRFRequired  <-- ou gérer le token
+ */
+public function resetData(): DataResponse {
+
+    $tables = [
+        'emailbridge_stats',
+        'emailbridge_envoi',
+        'emailbridge_inscription',
+        'emailbridge_sequence',
+        'emailbridge_form',
+        'emailbridge_liste',
+        'emailbridge_parcours'
+    ];
+
+    try {
+        $this->db->beginTransaction();
+
+        foreach ($tables as $table) {
+            $this->db->executeStatement("DELETE FROM *PREFIX*$table");
+        }
+
+        // Supprimer les jobs liés à EmailBridge
+        $this->db->executeStatement(
+            "DELETE FROM *PREFIX*jobs WHERE class LIKE '%emailbridge%' OR argument LIKE '%emailbridge%'"
+        );
+
+        $this->db->commit();
+
+        // Supprimer les configs
+        foreach ($this->config->getAppKeys('emailbridge') as $key) {
+            $this->config->deleteAppValue('emailbridge', $key);
+        }
+
+        return new DataResponse([
+            'status' => 'ok',
+            'message' => 'Toutes les données EmailBridge ont été réinitialisées.'
+        ]);
+
+    } catch (\Throwable $e) {
+        $this->db->rollBack();
+        return new DataResponse([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+}
+
 }
 

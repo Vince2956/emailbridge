@@ -34,7 +34,12 @@ style('emailbridge', 'admin');
 <!-- SETTINGS -->
 <!-- ============================= -->
 <h2>Paramètres de désinstallation</h2>
+<hr style="margin:30px 0;">
 
+<h2>Réinitialiser toutes les données EmailBridge</h2>
+<p>Attention : toutes les données (emails, séquences, inscriptions, formulaires) seront supprimées.</p>
+<button id="resetBtn" class="warning">Réinitialiser</button>
+<div id="resetResult" style="margin-top:20px;"></div>
 <form id="settingsForm">
     <input type="hidden" name="requesttoken" value="<?php p($_['requesttoken']); ?>">
 
