@@ -230,30 +230,48 @@ class SequenceController extends Controller
         }
 
         try {
-            $qb = $this->db->getQueryBuilder();
-            $qb->update('emailbridge_sequence', 's')
-               ->innerJoin('s', 'emailbridge_parcours', 'p', 's.parcours_id = p.id')
-               ->set('s.sujet', $qb->createNamedParameter($data['sujet']))
-               ->set('s.contenu', $qb->createNamedParameter($data['contenu']))
-               ->set('s.send_day', $qb->createNamedParameter($data['send_day']))
-               ->set('s.send_time', $qb->createNamedParameter($data['send_time']))
-               ->set('s.delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
-               ->set('s.updated_at', $qb->createNamedParameter($data['updated_at']));
+    // 1️⃣ Vérifier que le parcours appartient bien à l'utilisateur
+    $qbCheck = $this->db->getQueryBuilder();
+    $qbCheck->select('id')
+        ->from('emailbridge_parcours')
+        ->where(
+            $qbCheck->expr()->eq('id', $qbCheck->createNamedParameter($parcoursId))
+        )
+        ->andWhere(
+            $qbCheck->expr()->eq('user_id', $qbCheck->createNamedParameter($userId))
+        );
 
-            if (isset($data['rules'])) {
-                $qb->set('s.rules', $qb->createNamedParameter($data['rules']));
-            }
+    $owner = $qbCheck->executeQuery()->fetchOne();
 
-            $qb->where($qb->expr()->eq('s.id', $qb->createNamedParameter($emailId)))
-               ->andWhere($qb->expr()->eq('s.parcours_id', $qb->createNamedParameter($parcoursId)))
-               ->andWhere($qb->expr()->eq('p.user_id', $qb->createNamedParameter($userId)))
-               ->executeStatement();
+    if (!$owner) {
+        return new DataResponse(['status' => 'error', 'message' => 'Non autorisé'], 403);
+    }
 
-            return new DataResponse(['status' => 'ok', 'id' => $emailId]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur editEmail: ' . $e->getMessage());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
+    // 2️⃣ UPDATE simple sans JOIN
+    $qb = $this->db->getQueryBuilder();
+    $qb->update('emailbridge_sequence')
+       ->set('sujet', $qb->createNamedParameter($data['sujet']))
+       ->set('contenu', $qb->createNamedParameter($data['contenu']))
+       ->set('send_day', $qb->createNamedParameter($data['send_day']))
+       ->set('send_time', $qb->createNamedParameter($data['send_time']))
+       ->set('delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
+       ->set('updated_at', $qb->createNamedParameter($data['updated_at']))
+       ->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
+       ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)));
+
+    if (isset($data['rules'])) {
+        $qb->set('rules', $qb->createNamedParameter($data['rules']));
+    }
+
+    $qb->executeStatement();
+
+    return new DataResponse(['status' => 'ok', 'id' => $emailId]);
+
+} catch (\Throwable $e) {
+    $this->logger->error('Erreur editEmail: ' . $e->getMessage());
+    return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+}
+
     }
 
 /**
