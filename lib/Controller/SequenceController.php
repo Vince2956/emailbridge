@@ -6,14 +6,14 @@ namespace OCA\EmailBridge\Controller;
 
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\IDBConnection;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
+use OCA\EmailBridge\Service\SequenceManagementService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\JSONResponse;
-use OCP\IUserSession;
-use OCA\EmailBridge\Service\SequenceManagementService;
 
 class SequenceController extends Controller
 {
@@ -37,14 +37,65 @@ class SequenceController extends Controller
         $this->userSession = $userSession;
     }
 
+    /**
+     * Retourne l'utilisateur courant ou lance une DataResponse d'erreur
+     */
+    private function getCurrentUser(): ?string
+    {
+        $user = $this->userSession->getUser();
+        if (!$user) {
+            return null;
+        }
+        return $user->getUID();
+    }
+
+    /**
+     * Vérifie qu'un parcours appartient à l'utilisateur courant
+     */
+    private function checkParcoursOwner(int $parcoursId, string $userId): bool
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('id')
+           ->from('emailbridge_parcours')
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId)))
+           ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+
+        return (bool)$qb->executeQuery()->fetch();
+    }
+
+    /**
+     * Vérifie qu'un email appartient à un parcours de l'utilisateur
+     */
+    private function checkEmailOwner(int $parcoursId, int $emailId, string $userId): bool
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('s.id')
+           ->from('emailbridge_sequence', 's')
+           ->innerJoin('s', 'emailbridge_parcours', 'p', 's.parcours_id = p.id')
+           ->where($qb->expr()->eq('s.id', $qb->createNamedParameter($emailId)))
+           ->andWhere($qb->expr()->eq('s.parcours_id', $qb->createNamedParameter($parcoursId)))
+           ->andWhere($qb->expr()->eq('p.user_id', $qb->createNamedParameter($userId)));
+
+        return (bool)$qb->executeQuery()->fetch();
+    }
+
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function getSequence(int $parcoursId): DataResponse
     {
+        $userId = $this->getCurrentUser();
+        if (!$userId) {
+            return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
+        }
+
+        if (!$this->checkParcoursOwner($parcoursId, $userId)) {
+            return new DataResponse(['status' => 'error', 'message' => 'Non autorisé'], 403);
+        }
+
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-           ->from('emailbridge_sequence')
-           ->where($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)));
+        $qb->select('s.*')
+           ->from('emailbridge_sequence', 's')
+           ->where($qb->expr()->eq('s.parcours_id', $qb->createNamedParameter($parcoursId)));
 
         $result = $qb->executeQuery()->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -57,428 +108,352 @@ class SequenceController extends Controller
         return new DataResponse(['status' => 'ok', 'emails' => $resultWithStats]);
     }
 
-
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function getAllParcours(): DataResponse
     {
-        try {
-            $user = $this->userSession->getUser();
-            if (!$user) {
-                return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté.'], 403);
-            }
-            $userId = $user->getUID();
-
-            $qb = $this->db->getQueryBuilder();
-            $rows = $qb->select('id', 'titre')
-                       ->from('*PREFIX*emailbridge_parcours')
-                       ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-                       ->executeQuery()
-                       ->fetchAll(\PDO::FETCH_ASSOC);
-
-            return new DataResponse(['status' => 'ok', 'parcours' => $rows]);
-
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur getAllParcours: ' . $e->getMessage() . ' / ' . $e->getTraceAsString());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()]);
+        $userId = $this->getCurrentUser();
+        if (!$userId) {
+            return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté.'], 403);
         }
-    }
 
-
-#[NoAdminRequired]
-#[NoCSRFRequired]
-public function addEmail(int $parcoursId): DataResponse
-{
-    $data = $this->request->getParams();
-    $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
-        ->format('Y-m-d H:i:s');
-
-    // ===============================
-    // Normalisation des champs
-    // ===============================
-    $sendDay = (int) ($data['send_day'] ?? 0);
-    $delayMinutes = isset($data['delay_minutes']) && is_numeric($data['delay_minutes'])
-        ? (int) $data['delay_minutes']
-        : 0;
-
-    // Règle métier : si send_day > 0, delay_minutes = 0
-    if ($sendDay > 0) {
-        $delayMinutes = 0;
-    }
-
-    // Gestion des règles si présentes
-    $rules = $data['rules'] ?? null;
-    if (isset($rules)) {
-        $rules = is_string($rules) ? $rules : json_encode($rules, JSON_THROW_ON_ERROR);
-    }
-
-    try {
         $qb = $this->db->getQueryBuilder();
-        $qb->insert('emailbridge_sequence')
-           ->values([
-               'parcours_id'   => $qb->createNamedParameter($parcoursId),
-               'sujet'         => $qb->createNamedParameter($data['sujet'] ?? 'Nouvel email'),
-               'contenu'       => $qb->createNamedParameter(json_encode($data['contenu'] ?? [], JSON_THROW_ON_ERROR)),
-               'send_day'      => $qb->createNamedParameter($sendDay),
-               'send_time'     => $qb->createNamedParameter($data['send_time'] ?? null),
-               'delay_minutes' => $qb->createNamedParameter($delayMinutes),
-               'rules'         => $qb->createNamedParameter($rules),
-               'created_at'    => $qb->createNamedParameter($nowUtc),
-               'updated_at'    => $qb->createNamedParameter($nowUtc),
-           ])
-           ->executeStatement();
+        $rows = $qb->select('id', 'titre')
+                   ->from('*PREFIX*emailbridge_parcours')
+                   ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+                   ->executeQuery()
+                   ->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Récupérer l'ID du nouvel email
-        $emailId = $this->db->lastInsertId('*PREFIX*emailbridge_sequence');
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $emailId
-        ]);
-
-    } catch (\Throwable $e) {
-        $this->logger->error('Erreur addEmail: ' . $e->getMessage());
-        return new DataResponse([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
+        return new DataResponse(['status' => 'ok', 'parcours' => $rows]);
     }
-}
-
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    public function deleteEmail(int $id): DataResponse
+    public function addEmail(int $parcoursId): DataResponse
     {
+        $userId = $this->getCurrentUser();
+        if (!$userId) {
+            return new DataResponse(['status' => 'error'], 403);
+        }
+
+        if (!$this->checkParcoursOwner($parcoursId, $userId)) {
+            return new DataResponse(['status' => 'error', 'message' => 'Accès interdit'], 403);
+        }
+
+        $data = $this->request->getParams();
+        $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+
+        $sendDay = (int)($data['send_day'] ?? 0);
+        $delayMinutes = isset($data['delay_minutes']) && is_numeric($data['delay_minutes']) ? (int)$data['delay_minutes'] : 0;
+        if ($sendDay > 0) $delayMinutes = 0;
+
+        $rules = $data['rules'] ?? null;
+        if (isset($rules)) {
+            $rules = is_string($rules) ? $rules : json_encode($rules, JSON_THROW_ON_ERROR);
+        }
+
         try {
             $qb = $this->db->getQueryBuilder();
-            $qb->delete('emailbridge_sequence')
-               ->where($qb->expr()->eq('id', $qb->createNamedParameter($id)));
-            $rows = $qb->executeStatement();
+            $qb->insert('emailbridge_sequence')
+               ->values([
+                   'parcours_id' => $qb->createNamedParameter($parcoursId),
+                   'sujet' => $qb->createNamedParameter($data['sujet'] ?? 'Nouvel email'),
+                   'contenu' => $qb->createNamedParameter(json_encode($data['contenu'] ?? [], JSON_THROW_ON_ERROR)),
+                   'send_day' => $qb->createNamedParameter($sendDay),
+                   'send_time' => $qb->createNamedParameter($data['send_time'] ?? null),
+                   'delay_minutes' => $qb->createNamedParameter($delayMinutes),
+                   'rules' => $qb->createNamedParameter($rules),
+                   'created_at' => $qb->createNamedParameter($nowUtc),
+                   'updated_at' => $qb->createNamedParameter($nowUtc),
+               ])
+               ->executeStatement();
 
-            if ($rows > 0) {
-                return new DataResponse(['status' => 'ok']);
-            } else {
-                return new DataResponse(['status' => 'error', 'message' => 'Email introuvable'], 404);
-            }
+            $emailId = $this->db->lastInsertId('*PREFIX*emailbridge_sequence');
+
+            return new DataResponse(['status' => 'ok', 'id' => $emailId]);
         } catch (\Throwable $e) {
-            $this->logger->error('Erreur deleteEmail: ' . $e->getMessage());
+            $this->logger->error('Erreur addEmail: ' . $e->getMessage());
             return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
-#[NoAdminRequired]
-#[NoCSRFRequired]
-public function editEmail(int $parcoursId, int $emailId): DataResponse
-{
-    $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function deleteEmail(int $emailId): DataResponse
+    {
+        $userId = $this->getCurrentUser();
+        if (!$userId) return new DataResponse(['status' => 'error'], 403);
 
-    $data = [
-        'sujet'         => $this->request->getParam('sujet'),
-        'contenu'       => json_encode($this->request->getParam('contenu') ?? [], JSON_THROW_ON_ERROR),
-        'send_day'      => (int) $this->request->getParam('send_day'),
-        'send_time'     => $this->request->getParam('send_time'),
-        'delay_minutes' => null !== $this->request->getParam('delay_minutes') 
-    	    ? (int) $this->request->getParam('delay_minutes') 
-            : 0,
-        'updated_at'    => $nowUtc,
-    ];
-
-    // Règle métier : si send_day > 0, delay_minutes = 0
-    if ($data['send_day'] > 0) {
-        $data['delay_minutes'] = 0;
-    }
-
-    // ✅ Gestion des règles si présentes
-    $rulesParam = $this->request->getParam('rules');
-    if ($rulesParam !== null) {
-        $data['rules'] = is_string($rulesParam) ? $rulesParam : json_encode($rulesParam, JSON_THROW_ON_ERROR);
-    }
-
-    try {
         $qb = $this->db->getQueryBuilder();
-        $qb->update('emailbridge_sequence')
-           ->set('sujet', $qb->createNamedParameter($data['sujet']))
-           ->set('contenu', $qb->createNamedParameter($data['contenu']))
-           ->set('send_day', $qb->createNamedParameter($data['send_day']))
-           ->set('send_time', $qb->createNamedParameter($data['send_time']))
-           ->set('delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
-           ->set('updated_at', $qb->createNamedParameter($data['updated_at']));
+        $qb->select('s.parcours_id')->from('emailbridge_sequence', 's')
+           ->where($qb->expr()->eq('s.id', $qb->createNamedParameter($emailId)));
 
-        if (isset($data['rules'])) {
-            $qb->set('rules', $qb->createNamedParameter($data['rules']));
+        $row = $qb->executeQuery()->fetch();
+        if (!$row || !$this->checkParcoursOwner((int)$row['parcours_id'], $userId)) {
+            return new DataResponse(['status' => 'error', 'message' => 'Non autorisé'], 403);
         }
 
-        $qb->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
-           ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)))
+        $qb = $this->db->getQueryBuilder();
+        $qb->delete('emailbridge_sequence')
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
            ->executeStatement();
 
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $emailId
-        ]);
+        return new DataResponse(['status' => 'ok']);
+    }
 
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function editEmail(int $parcoursId, int $emailId): DataResponse
+    {
+        $userId = $this->getCurrentUser();
+        if (!$userId) return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
+
+        if (!$this->checkEmailOwner($parcoursId, $emailId, $userId)) {
+            return new DataResponse(['status' => 'error', 'message' => 'Non autorisé'], 403);
+        }
+
+        $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $data = [
+            'sujet' => $this->request->getParam('sujet'),
+            'contenu' => json_encode($this->request->getParam('contenu') ?? [], JSON_THROW_ON_ERROR),
+            'send_day' => (int)$this->request->getParam('send_day'),
+            'send_time' => $this->request->getParam('send_time'),
+            'delay_minutes' => null !== $this->request->getParam('delay_minutes') ? (int)$this->request->getParam('delay_minutes') : 0,
+            'updated_at' => $nowUtc,
+        ];
+
+        if ($data['send_day'] > 0) $data['delay_minutes'] = 0;
+
+        $rulesParam = $this->request->getParam('rules');
+        if ($rulesParam !== null) {
+            $data['rules'] = is_string($rulesParam) ? $rulesParam : json_encode($rulesParam, JSON_THROW_ON_ERROR);
+        }
+
+        try {
+            $qb = $this->db->getQueryBuilder();
+            $qb->update('emailbridge_sequence', 's')
+               ->innerJoin('s', 'emailbridge_parcours', 'p', 's.parcours_id = p.id')
+               ->set('s.sujet', $qb->createNamedParameter($data['sujet']))
+               ->set('s.contenu', $qb->createNamedParameter($data['contenu']))
+               ->set('s.send_day', $qb->createNamedParameter($data['send_day']))
+               ->set('s.send_time', $qb->createNamedParameter($data['send_time']))
+               ->set('s.delay_minutes', $qb->createNamedParameter($data['delay_minutes']))
+               ->set('s.updated_at', $qb->createNamedParameter($data['updated_at']));
+
+            if (isset($data['rules'])) {
+                $qb->set('s.rules', $qb->createNamedParameter($data['rules']));
+            }
+
+            $qb->where($qb->expr()->eq('s.id', $qb->createNamedParameter($emailId)))
+               ->andWhere($qb->expr()->eq('s.parcours_id', $qb->createNamedParameter($parcoursId)))
+               ->andWhere($qb->expr()->eq('p.user_id', $qb->createNamedParameter($userId)))
+               ->executeStatement();
+
+            return new DataResponse(['status' => 'ok', 'id' => $emailId]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Erreur editEmail: ' . $e->getMessage());
+            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+/**
+ * Stoppe tous les envois “en attente” pour une inscription
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function stopAllSequence(int $inscriptionId): JSONResponse
+{
+    if (!$inscriptionId) {
+        return new JSONResponse(['status' => 'error', 'message' => 'ID inscription manquant'], 400);
+    }
+
+    return $this->handleSequenceStop(fn() => $this->sequenceService->stopAllSequence($inscriptionId), [
+        'inscription_id' => $inscriptionId,
+        'message' => 'Toutes les séquences en attente ont été stoppées.'
+    ]);
+}
+
+/**
+ * Stoppe un envoi unique pour une inscription (une seule séquence)
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function stopSingleSequence(int $inscriptionId, int $sequenceId): JSONResponse
+{
+    if (!$inscriptionId || !$sequenceId) {
+        return new JSONResponse(['status' => 'error', 'message' => 'ID inscription ou sequence manquant'], 400);
+    }
+
+    return $this->handleSequenceStop(fn() => $this->sequenceService->stopSingleSequence($inscriptionId, $sequenceId), [
+        'inscription_id' => $inscriptionId,
+        'sequence_id' => $sequenceId,
+        'message' => 'La séquence spécifique a été stoppée.'
+    ]);
+}
+
+/**
+ * Helper interne pour gérer le stop d'une ou plusieurs séquences
+ */
+private function handleSequenceStop(callable $stopCallback, array $successData): JSONResponse
+{
+    try {
+        $success = $stopCallback();
+        if ($success) {
+            return new JSONResponse(array_merge(['status' => 'ok'], $successData));
+        }
+        return new JSONResponse(['status' => 'error', 'message' => 'Impossible de stopper la séquence'], 500);
     } catch (\Throwable $e) {
-        $this->logger->error('Erreur editEmail: ' . $e->getMessage());
-        return new DataResponse([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
+        $this->logger->error('Erreur handleSequenceStop: ' . $e->getMessage());
+        return new JSONResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 }
 
+/**
+ * Redirige une inscription vers une autre séquence
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function redirectInscription(int $inscriptionId): DataResponse
+{
+    return $this->handleRedirect($inscriptionId, 'Inscription redirigée avec succès.');
+}
 
+/**
+ * Redirection générique (utilisée aussi pour redirectSequence)
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function redirectSequence(int $inscriptionId): DataResponse
+{
+    return $this->handleRedirect($inscriptionId, 'Redirection effectuée avec succès.');
+}
 
-    /**
-     * Stoppe tous les envois “en attente” pour une inscription
-     */
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function stopAllSequence(int $inscriptionId): JSONResponse
-    {
-        if (!$inscriptionId) {
-            return new JSONResponse(['status' => 'error', 'message' => 'ID inscription manquant'], 400);
+/**
+ * Helper interne pour gérer la redirection d'inscription
+ */
+private function handleRedirect(int $inscriptionId, string $successMessage): DataResponse
+{
+    try {
+        $parcoursId = (int)$this->request->getParam('parcoursId');
+        if ($parcoursId <= 0) {
+            return new DataResponse(['status' => 'error', 'message' => 'Parcours invalide.']);
         }
 
-        try {
-            $success = $this->sequenceService->stopAllSequence($inscriptionId);
-
-            if ($success) {
-                return new JSONResponse([
-                    'status' => 'ok',
-                    'inscription_id' => $inscriptionId,
-                    'message' => 'Toutes les séquences en attente ont été stoppées.'
-                ]);
-            } else {
-                return new JSONResponse([
-                    'status' => 'error',
-                    'message' => 'Impossible de stopper la séquence'
-                ], 500);
-            }
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur stopAllSequence: ' . $e->getMessage());
-            return new JSONResponse([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+        $user = $this->userSession->getUser();
+        if (!$user) {
+            return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté.'], 403);
         }
-    }
-
-    /**
-     * Stoppe un envoi unique pour une inscription (une seule séquence)
-     */
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function stopSingleSequence(int $inscriptionId, int $sequenceId): JSONResponse
-    {
-        if (!$inscriptionId || !$sequenceId) {
-            return new JSONResponse(['status' => 'error', 'message' => 'ID inscription ou sequence manquant'], 400);
-        }
-
-        try {
-            $success = $this->sequenceService->stopSingleSequence($inscriptionId, $sequenceId);
-
-            if ($success) {
-                return new JSONResponse([
-                    'status' => 'ok',
-                    'inscription_id' => $inscriptionId,
-                    'sequence_id' => $sequenceId,
-                    'message' => 'La séquence spécifique a été stoppée.'
-                ]);
-            } else {
-                return new JSONResponse([
-                    'status' => 'error',
-                    'message' => 'Impossible de stopper la séquence'
-                ], 500);
-            }
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur stopSingleSequence: ' . $e->getMessage());
-            return new JSONResponse([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Redirige une inscription vers une autre séquence
-     */
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function redirectInscription(int $inscriptionId): DataResponse
-    {
-        try {
-            $parcoursId = (int)$this->request->getParam('parcoursId');
-            if ($parcoursId <= 0) {
-                return new DataResponse(['status' => 'error', 'message' => 'Parcours invalide.']);
-            }
-
-            // ✅ Vérifier le user_id du parcours
-            $user = $this->userSession->getUser();
-            if (!$user) {
-                return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté.'], 403);
-            }
-            $userId = $user->getUID();
-
-            $qb = $this->db->getQueryBuilder();
-            $qb->select('id')
-               ->from('emailbridge_parcours')
-               ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId)))
-               ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
-            $row = $qb->executeQuery()->fetch();
-
-            if (!$row) {
-                $this->logger->warning("Tentative d’accès à un parcours non autorisé: $parcoursId par $userId");
-                return new DataResponse(['status' => 'error', 'message' => 'Parcours non autorisé.'], 403);
-            }
-
-            $success = $this->sequenceService->redirectInscription($inscriptionId, $parcoursId);
-
-            return new DataResponse([
-                'status' => $success ? 'ok' : 'error',
-                'message' => $success ? 'Inscription redirigée avec succès.' : 'Échec de la redirection.'
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur redirectInscription: ' . $e->getMessage());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-    }
-
-
-
-    /**
-     * Récupère toutes les inscriptions d’un parcours avec leurs envois
-     */
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function getInscriptions(int $parcoursId): DataResponse
-    {
-        try {
-            $inscriptions = $this->sequenceService->getInscriptionsByParcours($parcoursId);
-            return new DataResponse([
-                'status' => 'ok',
-                'inscriptions' => $inscriptions
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur getInscriptions: ' . $e->getMessage());
-            return new DataResponse([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function redirectSequence(int $inscriptionId): DataResponse
-    {
-        try {
-            $newParcoursId = (int) $this->request->getParam('parcoursId');
-            if ($newParcoursId <= 0) {
-                return new DataResponse(['status' => 'error', 'message' => 'Parcours invalide.']);
-            }
-
-            // ✅ Vérifier le user_id du parcours cible
-            $user = $this->userSession->getUser();
-            if (!$user) {
-                return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté.'], 403);
-            }
-            $userId = $user->getUID();
-
-            $qb = $this->db->getQueryBuilder();
-            $qb->select('id')
-               ->from('emailbridge_parcours')
-               ->where($qb->expr()->eq('id', $qb->createNamedParameter($newParcoursId)))
-               ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
-            $row = $qb->executeQuery()->fetch();
-
-            if (!$row) {
-                $this->logger->warning("Tentative de redirection vers un parcours non autorisé: $newParcoursId par $userId");
-                return new DataResponse(['status' => 'error', 'message' => 'Parcours non autorisé.'], 403);
-            }
-
-            $this->sequenceService->redirectInscription($inscriptionId, $newParcoursId);
-
-            return new DataResponse(['status' => 'ok', 'message' => 'Redirection effectuée avec succès.']);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur redirectSequence: ' . $e->getMessage());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-    }
-
-
-    /**
-     * Récupère les règles d’un email (dans une séquence)
-     *
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
-    public function getEmailRules(int $parcoursId, int $emailId): JSONResponse
-    {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('rules')
-           ->from('emailbridge_sequence')
-           ->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
-           ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)));
-
-        $result = $qb->executeQuery()->fetch();
-
-        $rules = [];
-        if ($result && !empty($result['rules'])) {
-            $decoded = json_decode($result['rules'], true);
-            if (is_array($decoded)) {
-                $rules = $decoded;
-            }
-        }
-
-        return new JSONResponse([
-            'status' => 'ok',
-            'rules' => $rules
-        ]);
-    }
-
-
-    /**
-     * Sauvegarde les règles d’un email (dans une séquence)
-     *
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
-    public function saveEmailRules(int $parcoursId, int $emailId): JSONResponse
-    {
-        $rulesJson = $this->request->getParam('rules');
-
-        if (empty($rulesJson)) {
-            return new JSONResponse([
-                'status' => 'error',
-                'message' => 'Aucune règle reçue'
-            ], 400);
-        }
-
-        if (is_array($rulesJson)) {
-            $rulesJson = json_encode($rulesJson);
-        }
+        $userId = $user->getUID();
 
         $qb = $this->db->getQueryBuilder();
-        $qb->update('emailbridge_sequence')
-           ->set('rules', $qb->createNamedParameter($rulesJson))
-           ->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
-           ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)));
-
-        try {
-            $qb->executeStatement();
-        } catch (\Throwable $e) {
-            return new JSONResponse([
-                'status' => 'error',
-                'message' => 'Erreur lors de la sauvegarde : ' . $e->getMessage()
-            ], 500);
+        $qb->select('id')
+           ->from('emailbridge_parcours')
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId)))
+           ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+        if (!$qb->executeQuery()->fetch()) {
+            $this->logger->warning("Tentative de redirection vers un parcours non autorisé: $parcoursId par $userId");
+            return new DataResponse(['status' => 'error', 'message' => 'Parcours non autorisé.'], 403);
         }
 
-        return new JSONResponse([
-            'status' => 'ok',
-            'rules' => json_decode($rulesJson, true)
+        $success = $this->sequenceService->redirectInscription($inscriptionId, $parcoursId);
+
+        return new DataResponse([
+            'status' => $success ? 'ok' : 'error',
+            'message' => $success ? $successMessage : 'Échec de la redirection.'
         ]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur handleRedirect: ' . $e->getMessage());
+        return new DataResponse(['status' => 'error', 'message' => $e->getMessage()]);
     }
+}
+
+/**
+ * Récupère toutes les inscriptions d’un parcours avec leurs envois
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function getInscriptions(int $parcoursId): DataResponse
+{
+    try {
+        $user = $this->userSession->getUser();
+        if (!$user) {
+            return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
+        }
+        $userId = $user->getUID();
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('id')
+           ->from('emailbridge_parcours')
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId)))
+           ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+        if (!$qb->executeQuery()->fetch()) {
+            return new DataResponse(['status' => 'error', 'message' => 'Non autorisé'], 403);
+        }
+
+        $inscriptions = $this->sequenceService->getInscriptionsByParcours($parcoursId);
+        return new DataResponse(['status' => 'ok', 'inscriptions' => $inscriptions]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur getInscriptions: ' . $e->getMessage());
+        return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Récupère les règles d’un email (dans une séquence)
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function getEmailRules(int $parcoursId, int $emailId): JSONResponse
+{
+    $qb = $this->db->getQueryBuilder();
+    $qb->select('rules')
+       ->from('emailbridge_sequence')
+       ->where($qb->expr()->eq('id', $qb->createNamedParameter($emailId)))
+       ->andWhere($qb->expr()->eq('parcours_id', $qb->createNamedParameter($parcoursId)));
+
+    $result = $qb->executeQuery()->fetch();
+    $rules = $result['rules'] ? json_decode($result['rules'], true) : [];
+
+    return new JSONResponse(['status' => 'ok', 'rules' => $rules ?: []]);
+}
+
+/**
+ * Sauvegarde les règles d’un email (dans une séquence)
+ */
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function saveEmailRules(int $parcoursId, int $emailId): JSONResponse
+{
+    $user = $this->userSession->getUser();
+    if (!$user) {
+        return new JSONResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
+    }
+
+    $rules = $this->request->getParam('rules');
+    if (empty($rules)) {
+        return new JSONResponse(['status' => 'error', 'message' => 'Aucune règle reçue'], 400);
+    }
+    $rulesJson = is_array($rules) ? json_encode($rules, JSON_THROW_ON_ERROR) : $rules;
+
+    try {
+        $qb = $this->db->getQueryBuilder();
+        $qb->update('emailbridge_sequence', 's')
+           ->innerJoin('s', 'emailbridge_parcours', 'p', 's.parcours_id = p.id')
+           ->set('s.rules', $qb->createNamedParameter($rulesJson))
+           ->where($qb->expr()->eq('s.id', $qb->createNamedParameter($emailId)))
+           ->andWhere($qb->expr()->eq('s.parcours_id', $qb->createNamedParameter($parcoursId)))
+           ->andWhere($qb->expr()->eq('p.user_id', $qb->createNamedParameter($user->getUID())))
+           ->executeStatement();
+
+        return new JSONResponse(['status' => 'ok', 'rules' => json_decode($rulesJson, true)]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur saveEmailRules: ' . $e->getMessage());
+        return new JSONResponse(['status' => 'error', 'message' => 'Erreur lors de la sauvegarde : ' . $e->getMessage()], 500);
+    }
+}
 
 
 }

@@ -20,6 +20,7 @@ use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
+use OCP\IUserManager;
 
 
 class Application extends App
@@ -43,7 +44,8 @@ class Application extends App
                 $c->query(\OCP\Files\IRootFolder::class),
                 $c->query(IURLGenerator::class),
                 $c->query(LoggerInterface::class),
-                $c->query(IConfig::class)
+                $c->query(IConfig::class),
+                $c->query(IUserManager::class)
             );
         });
 

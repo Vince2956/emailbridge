@@ -162,7 +162,7 @@ class FormController extends Controller
 
             return new DataResponse([
                 'status' => 'ok',
-                'message' => "Merci ! Vérifiez votre email pour confirmer (parcours $parcoursId)."
+                'message' => "Merci ! Vérifiez votre email pour confirmer (P: $parcoursId)."
             ], Http::STATUS_OK);
 
         } catch (\Throwable $e) {

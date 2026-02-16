@@ -14,6 +14,7 @@ use OCP\IURLGenerator;
 use Psr\Log\LoggerInterface;
 use OCP\IConfig;
 use OCA\EmailBridge\Defaults;
+use OCP\IUserManager;
 
 class EmailService
 {
@@ -24,6 +25,7 @@ class EmailService
     private IURLGenerator $urlGenerator;
     private LoggerInterface $logger;
     private IConfig $config;
+    private IUserManager $userManager;
 
     /** @var SequenceService|null Inject via setter to avoid cycles */
     private ?SequenceService $sequenceService = null;
@@ -35,7 +37,8 @@ class EmailService
         IRootFolder $rootFolder,
         IURLGenerator $urlGenerator,
         LoggerInterface $logger,
-        IConfig $config
+        IConfig $config,
+        IUserManager $userManager
     ) {
         $this->db = $db;
         $this->mailer = $mailer;
@@ -44,6 +47,7 @@ class EmailService
         $this->urlGenerator = $urlGenerator;
         $this->logger = $logger;
         $this->config = $config;
+        $this->userManager = $userManager;
     }
 
     /**
@@ -103,7 +107,7 @@ class EmailService
      * Crée ou récupère un lien public Nextcloud pour un fichier (path relatif dans user).
      * Si $path empty -> retourne empty string.
      */
-    private function getPublicLink(?string $path): string
+    /**private function getPublicLink(?string $path): string
     {
         if (empty($path)) {
             return '';
@@ -143,8 +147,68 @@ class EmailService
             $this->logger->error('getPublicLink error: ' . $e->getMessage(), ['path' => $path]);
             return '';
         }
+    }*/
+    
+    private function getPublicLink(?string $path, int $parcoursId): string
+{
+    if (empty($path)) {
+        return '';
     }
 
+    try {
+        // 🔎 1) Récupérer le user_id du parcours
+        $qb = $this->db->getQueryBuilder();
+        $ownerUid = $qb->select('user_id')
+            ->from('emailbridge_parcours')
+            ->where($qb->expr()->eq('id', $qb->createNamedParameter($parcoursId, \PDO::PARAM_INT)))
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        if (empty($ownerUid)) {
+            throw new \RuntimeException('Aucun user_id trouvé pour le parcours');
+        }
+
+        // 📁 2) Accéder au dossier de cet utilisateur
+        $userFolder = $this->rootFolder->getUserFolder($ownerUid);
+
+        // ⚠️ $path doit être relatif au dossier utilisateur
+        $node = $userFolder->get($path);
+
+        // 🔗 3) Vérifier si un lien public existe déjà
+        $shares = $this->shareManager->getSharesByPath(
+            $node,
+            IShare::TYPE_LINK,
+            $ownerUid,
+            true
+        );
+
+        if (!empty($shares)) {
+            $token = $shares[0]->getToken();
+        } else {
+            $share = $this->shareManager->newShare();
+            $share->setNode($node)
+                  ->setShareType(IShare::TYPE_LINK)
+                  ->setPermissions(Constants::PERMISSION_READ)
+                  ->setSharedBy($ownerUid);
+
+            $share = $this->shareManager->createShare($share);
+            $token = $share->getToken();
+        }
+
+        return $this->urlGenerator->linkToRouteAbsolute(
+            'files_sharing.sharecontroller.showShare',
+            ['token' => $token]
+        );
+
+    } catch (\Throwable $e) {
+        $this->logger->error('getPublicLink error: ' . $e->getMessage(), [
+            'path' => $path,
+            'parcoursId' => $parcoursId
+        ]);
+        return '';
+    }
+}
 
 
     /**
@@ -337,7 +401,7 @@ class EmailService
                 if (preg_match('#^https?://#i', $documentPath)) {
                     $publicUrl = $documentPath;
                 } else {
-                    $publicUrl = $this->getPublicLink($documentPath);
+                    $publicUrl = $this->getPublicLink($documentPath, $parcoursId);
                 }
             }
 
