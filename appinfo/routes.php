@@ -45,7 +45,7 @@ return [
         // Séquence emails
         ['name' => 'sequence#getSequence', 'url' => '/parcours/{parcoursId}/emails', 'verb' => 'GET'],
         ['name' => 'sequence#addEmail',   'url' => '/parcours/{parcoursId}/emails/add', 'verb' => 'POST'],
-        ['name' => 'sequence#deleteEmail', 'url' => '/email/{id}', 'verb' => 'DELETE'],
+        ['name' => 'sequence#deleteEmail', 'url' => '/email/{emailId}', 'verb' => 'DELETE'],
 	['name' => 'sequence#getInscriptions', 'url' => '/parcours/{parcoursId}/inscriptions', 'verb' => 'GET'],
 
         // Désabonnement
