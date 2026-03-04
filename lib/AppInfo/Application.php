@@ -144,7 +144,8 @@ class Application extends App
         	self::APP_ID,
         	$c->query('Request'),
         	$c->query(IDBConnection::class),
-        	$c->query(IConfig::class)
+        	$c->query(IConfig::class),
+        	$c->query(\OCP\IUserSession::class)
     	    );
 	});
 	

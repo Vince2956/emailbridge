@@ -8,21 +8,25 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
 use OCP\IDBConnection;
 use OCP\IConfig;
+use OCP\IUserSession;
 
 class AdminController extends Controller {
 
     private IDBConnection $db;
     private IConfig $config;
+    private IUserSession $userSession;
 
     public function __construct(
         string $appName,
         IRequest $request,
         IDBConnection $db,
-        IConfig $config
+        IConfig $config,
+        IUserSession $userSession
     ) {
         parent::__construct($appName, $request);
         $this->db = $db;
         $this->config = $config;
+        $this->userSession = $userSession;
     }
 
 /**
@@ -31,22 +35,45 @@ class AdminController extends Controller {
  */
 public function index(): TemplateResponse {
 
+    $user = $this->userSession->getUser();
+    $userId = $user ? $user->getUID() : null;
+
+    // 🔹 Paramètre suppression
     $delete = $this->config->getAppValue('emailbridge', 'delete_on_uninstall', '0');
     $deleteBool = $delete === '1';
 
-    // 🔹 Récupération config HelloAsso
+    // 🔹 Config HelloAsso (globale pour l’instant)
     $slug = $this->config->getAppValue('emailbridge', 'helloasso_slug', '');
     $clientId = $this->config->getAppValue('emailbridge', 'helloasso_client_id', '');
     $clientSecret = $this->config->getAppValue('emailbridge', 'helloasso_client_secret', '');
+
+    // 🔹 Token webhook spécifique à l’utilisateur
+    $token = '';
+    $webhookUrl = '';
+
+    if ($userId) {
+
+        $token = $this->config->getUserValue($userId, 'emailbridge', 'webhook_token', '');
+
+        if (!$token) {
+            $token = bin2hex(random_bytes(32));
+            $this->config->setUserValue($userId, 'emailbridge', 'webhook_token', $token);
+        }
+
+        // Génération URL absolue
+        $webhookUrl = \OC::$server->getURLGenerator()->linkToRouteAbsolute(
+            'emailbridge.webhook.helloAsso',
+            ['userId' => $userId]
+        ) . '?token=' . $token;
+    }
 
     return new TemplateResponse('emailbridge', 'settings/admin', [
         'delete_on_uninstall' => $deleteBool,
         'helloasso_slug' => $slug,
         'helloasso_client_id' => $clientId,
         'helloasso_client_secret' => $clientSecret,
-    ],
-    ''
-    );
+        'webhook_url' => $webhookUrl,
+    ], '');
 }
 
 
@@ -419,5 +446,32 @@ public function saveHelloAssoSelection(): DataResponse {
         ]);
     }
 }
+
+/**
+ * @AdminRequired
+ */
+public function regenerateWebhookToken(): \OCP\AppFramework\Http\DataResponse {
+
+    $user = $this->userSession->getUser();
+    if (!$user) {
+        return new DataResponse(['status'=>'error'], 401);
+    }
+
+    $userId = $user->getUID();
+
+    $newToken = bin2hex(random_bytes(32));
+    $this->config->setUserValue($userId, 'emailbridge', 'webhook_token', $newToken);
+
+    $webhookUrl = \OC::$server->getURLGenerator()->linkToRouteAbsolute(
+        'emailbridge.webhook.helloAsso',
+        ['userId' => $userId]
+    ) . '?token=' . $newToken;
+
+    return new \OCP\AppFramework\Http\DataResponse([
+        'status' => 'ok',
+        'webhook_url' => $webhookUrl
+    ]);
+}
+
 }
 

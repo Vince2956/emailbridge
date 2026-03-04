@@ -1002,6 +1002,20 @@ public function getParcoursByHelloAssoItem($itemId): ?array
     }
 }
 
+public function getParcoursByHelloAssoItemForUser($itemId, string $userId): ?array
+{
+    $qb = $this->db->getQueryBuilder();
+
+    $qb->select('*')
+       ->from('emailbridge_parcours')
+       ->where($qb->expr()->eq('helloasso_item_id', $qb->createNamedParameter($itemId)))
+       ->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+       ->setMaxResults(1);
+
+    $row = $qb->executeQuery()->fetch();
+
+    return $row ?: null;
+}
 
 
 }

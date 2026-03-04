@@ -122,6 +122,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+// ============================
+// WEBHOOK
+// ============================
+const webhookUrlInput = document.getElementById('webhookUrl');
+const copyWebhookBtn = document.getElementById('copyWebhookBtn');
+const regenTokenBtn = document.getElementById('regenTokenBtn');
+const webhookResult = document.getElementById('webhookResult');
+
+// Copier URL
+if (copyWebhookBtn && webhookUrlInput) {
+    copyWebhookBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(webhookUrlInput.value);
+            webhookResult.innerHTML = '<span style="color:green">URL copiée !</span>';
+        } catch (err) {
+            webhookResult.innerHTML = '<span style="color:red">Impossible de copier</span>';
+        }
+    });
+}
+
+// Régénérer token
+if (regenTokenBtn) {
+    regenTokenBtn.addEventListener('click', async () => {
+
+        if (!confirm("Régénérer le token invalidera l'ancien webhook. Continuer ?")) {
+            return;
+        }
+
+        webhookResult.innerHTML = 'Régénération…';
+
+        try {
+            const response = await fetch(baseUrl + '/admin/regenerate-webhook-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    requesttoken: OC.requestToken
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                webhookUrlInput.value = data.webhook_url;
+                webhookResult.innerHTML = '<span style="color:green">Token régénéré</span>';
+            } else {
+                webhookResult.innerHTML = '<span style="color:red">' + (data.message || 'Erreur') + '</span>';
+            }
+
+        } catch (err) {
+            console.error(err);
+            webhookResult.innerHTML = '<span style="color:red">Erreur réseau</span>';
+        }
+    });
+}
 
 // ============================
 // Recharger les produits HelloAsso

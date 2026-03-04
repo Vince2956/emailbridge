@@ -31,46 +31,53 @@ class WebhookController extends Controller
         $this->emailService = $emailService;
     }
 
-    #[PublicPage]
+#[PublicPage]
 #[NoCSRFRequired]
-public function helloAsso(): DataResponse
+public function helloAsso(string $userId): DataResponse
 {
     try {
-        // 1️⃣ Vérifie le token webhook
+
+        // 1️⃣ Vérifie le token utilisateur
         $tokenFromRequest = $this->request->getParam('token');
-        $tokenFromConfig  = $this->config->getAppValue('emailbridge', 'webhook_token', '');
+        $tokenFromConfig  = $this->config->getUserValue($userId, 'emailbridge', 'webhook_token', '');
+
         if (!$tokenFromRequest || $tokenFromRequest !== $tokenFromConfig) {
             return new DataResponse(['status'=>'Unauthorized'], 401);
         }
 
-        // 2️⃣ Récupère le payload JSON
+        // 2️⃣ Payload
         $payload = json_decode(file_get_contents('php://input'), true);
         if (!$payload) {
             return new DataResponse(['status'=>'error','message'=>'Payload vide'], 400);
         }
 
-        $email = $payload['data']['email'] ?? null;
+        $email  = $payload['data']['email'] ?? null;
         $itemId = $payload['data']['itemId'] ?? null;
 
         if (!$email || !$itemId) {
             return new DataResponse(['status'=>'error','message'=>'Email ou produit manquant'], 400);
         }
 
-        // 3️⃣ Trouve le parcours associé à ce produit
-        $parcours = $this->emailService->getParcoursByHelloAssoItem($itemId);
+        // 3️⃣ Trouver parcours POUR CE USER
+        $parcours = $this->emailService->getParcoursByHelloAssoItemForUser($itemId, $userId);
+
         if (!$parcours) {
             return new DataResponse(['status'=>'error','message'=>'Aucun parcours associé à ce produit'], 404);
         }
 
         $parcoursId = (int)$parcours['id'];
 
-        // 4️⃣ Vérifie si l’email est déjà inscrit
+        // 4️⃣ Inscription
         if (!$this->emailService->isAlreadyInscribed($email, $parcoursId)) {
-            // crée l’inscription dans la table liste comme submit()
+
             $documentUrl = $this->emailService->getDocumentUrlForParcours($parcoursId);
-            $this->emailService->storeAndSend($email, $documentUrl, $parcoursId, false); 
-            // Le dernier paramètre false signifie "ne pas envoyer le mail de confirmation direct",
-            // EmailBridge gère ensuite la séquence
+
+            $this->emailService->storeAndSend(
+                $email,
+                $documentUrl,
+                $parcoursId,
+                false
+            );
         }
 
         return new DataResponse(['status'=>'ok','message'=>'Inscription enregistrée']);

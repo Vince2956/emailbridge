@@ -83,8 +83,9 @@ return [
         ['name' => 'admin#saveHelloAssoKey', 'url'  => '/admin/save-helloasso-key', 'verb' => 'POST'],
         ['name' => 'admin#fetchHelloAssoProducts', 'url'  => '/admin/fetch-helloasso-products', 'verb' => 'GET'],
         ['name' => 'admin#saveHelloAssoSelection', 'url' => '/admin/save-helloasso-selection', 'verb' => 'POST'],
+        ['name' => 'admin#regenerateWebhookToken', 'url'  => '/admin/regenerate-webhook-token', 'verb' => 'POST'],
                 
         //Webhook
-        ['name' => 'webhook#helloAsso', 'url' => '/helloasso/webhook', 'verb' => 'POST', 'public' => true],
+        ['name' => 'webhook#helloAsso', 'url' => '/helloasso/webhook/{userId}', 'verb' => 'POST', 'public' => true],
     ]
 ];
