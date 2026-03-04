@@ -96,7 +96,7 @@ helloassoBlock.innerHTML = `
     </label>
     <select class="helloasso-products">
         <option value="">-- Sélectionnez un produit --</option>
-        ${p.helloasso_products.map(prod => `
+        ${(p.helloasso_products || []).map(prod => `
             <option value="${prod.id}" ${prod.id === p.selected_helloasso_product ? 'selected' : ''}>${prod.name}</option>
         `).join('')}
     </select>
@@ -622,23 +622,38 @@ async function loadEmails(parcoursId, container) {
 
     // --- Nouveau parcours ---
     cancelBtn.addEventListener('click', () => modalNew.classList.add('hidden'));
-    saveBtn.addEventListener('click', async () => {
-        const titre = titleInput.value.trim();
-        if (!titre) return alert('Veuillez saisir un titre.');
-        const formData = new FormData();
-        formData.append('titre', titre);
-        formData.append('requesttoken', csrfToken);
+saveBtn.addEventListener('click', async () => {
+    const titre = titleInput.value.trim();
+    if (!titre) return alert('Veuillez saisir un titre.');
 
-        try {
-            const res = await fetch(window.createParcoursUrl, { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.status === 'ok') {
-                window.parcoursData.push(data.parcours);
-                renderParcours();
-                modalNew.classList.add('hidden');
-            } else alert('Erreur: ' + (data.message || 'inconnue'));
-        } catch (err) { console.error('Erreur réseau:', err); alert('Erreur réseau'); }
-    });
+    const formData = new FormData();
+    formData.append('titre', titre);
+    formData.append('requesttoken', csrfToken);
+
+    try {
+        const res = await fetch(window.createParcoursUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        console.log('Réponse serveur createParcours:', data); // <- ici OK
+
+        if (data.status === 'ok') {
+            // Assurer que helloasso_products existe
+            const newParcours = {
+                ...data.parcours,
+                helloasso_products: data.parcours.helloasso_products || []
+            };
+
+            window.parcoursData.push(newParcours);
+            renderParcours();
+            modalNew.classList.add('hidden');
+        } else {
+            alert('Erreur: ' + (data.message || 'inconnue'));
+        }
+    } catch (err) {
+        console.error('Erreur réseau:', err);
+        alert('Erreur réseau');
+    }
+});
 
     // --- Modale Message ---
     function openMessageModal(parcoursId) {

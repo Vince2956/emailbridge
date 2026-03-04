@@ -139,58 +139,67 @@ public function updateHelloAsso(int $id): DataResponse
     }
 }
 
-    /**
-     * Créer un nouveau parcours
-     */
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function createParcours(): DataResponse
-    {
-        $titre = $this->request->getParam('titre');
-        if (!$titre) {
-            $this->logger->debug('Titre manquant lors de la création de parcours');
-            return new DataResponse(['status' => 'error', 'message' => 'Titre manquant'], 400);
-        }
-        $user = $this->userSession->getUser();
-        if (!$user) {
-            return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
-        }
-        $userId = $user->getUID();
-
-        try {
-            // Initialisation du QueryBuilder (corrigé)
-            $qb = $this->db->getQueryBuilder();
-
-            $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
-                ->format('Y-m-d H:i:s');
-
-            $qb->insert('emailbridge_parcours')
-                ->values([
-                    'titre'      => $qb->createNamedParameter($titre),
-                    'created_at' => $qb->createNamedParameter($nowUtc),
-                    'updated_at' => $qb->createNamedParameter($nowUtc),
-            'user_id'    => $qb->createNamedParameter($userId),
-                ])
-                ->executeStatement();
-
-            $parcoursId = $this->db->lastInsertId('*PREFIX*emailbridge_parcours');
-            $this->logger->debug("Nouveau parcours créé: $titre (ID $parcoursId)");
-
-            return new DataResponse([
-                'status' => 'ok',
-                'message' => 'Parcours créé',
-                'parcours' => [
-                    'id' => $parcoursId,
-                    'titre' => $titre,
-                    'created_at' => $nowUtc
-                ]
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur createParcours: ' . $e->getMessage());
-            return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function createParcours(): DataResponse
+{
+    $titre = $this->request->getParam('titre');
+    if (!$titre) {
+        $this->logger->debug('Titre manquant lors de la création de parcours');
+        return new DataResponse(['status' => 'error', 'message' => 'Titre manquant'], 400);
     }
 
+    $user = $this->userSession->getUser();
+    if (!$user) {
+        return new DataResponse(['status' => 'error', 'message' => 'Utilisateur non connecté'], 403);
+    }
+    $userId = $user->getUID();
+
+    try {
+        $qb = $this->db->getQueryBuilder();
+        $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+            ->format('Y-m-d H:i:s');
+
+        // Insertion du nouveau parcours
+        $qb->insert('emailbridge_parcours')
+            ->values([
+                'titre'      => $qb->createNamedParameter($titre),
+                'created_at' => $qb->createNamedParameter($nowUtc),
+                'updated_at' => $qb->createNamedParameter($nowUtc),
+                'user_id'    => $qb->createNamedParameter($userId),
+                'bypass_file'=> $qb->createNamedParameter(0),
+                'helloasso_item_id' => $qb->createNamedParameter(null),
+            ])
+            ->executeStatement();
+
+        // Récupération de l'ID via adaptateur Nextcloud
+        $parcoursId = $this->db->lastInsertId('*PREFIX*emailbridge_parcours');
+
+        $this->logger->debug("Nouveau parcours créé: $titre (ID $parcoursId)");
+
+        // Produits HelloAsso
+        $products = $this->getHelloAssoProducts();
+
+        return new DataResponse([
+            'status' => 'ok',
+            'message' => 'Parcours créé',
+            'parcours' => [
+                'id' => $parcoursId,
+                'titre' => $titre,
+                'created_at' => $nowUtc,
+                'document_url' => null,
+                'bypass_file' => 0,
+                'helloasso_sale' => false,
+                'helloasso_products' => $products,
+                'selected_helloasso_product' => null
+            ]
+        ]);
+
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur createParcours: ' . $e->getMessage());
+        return new DataResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
