@@ -780,3 +780,47 @@
   border-radius: 4px;
 }
 
+/* ==========================
+   Bloc helloAsso
+   ========================== */
+
+.parcours-helloasso {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+    position: relative; /* pour z-index */
+}
+
+.parcours-helloasso select {
+    width: 100%;
+    max-width: 280px;
+    padding: 4px 6px;
+    font-size: 0.95rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    position: relative;
+    z-index: 10; /* pour être au-dessus des boutons en dessous */
+}
+
+.parcours-helloasso label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #14232C;
+}
+
+.parcours-helloasso input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.parcours-helloasso select:disabled {
+    background-color: #f0f0f0; /* gris clair */
+    color: #888888;            /* texte gris */
+    border-color: #ccc;        /* bordure claire */
+    cursor: not-allowed;       /* curseur interdit */
+}

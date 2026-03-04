@@ -43,57 +43,101 @@ class PageController extends Controller
      */
 
     #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function index(): TemplateResponse
-    {
-        $this->logger->debug('PageController index appelé');
+#[NoCSRFRequired]
+public function index(): TemplateResponse
+{
+    $this->logger->debug('PageController index appelé');
 
-        \OCP\Util::addScript('emailbridge', 'emailbridge-main');
-        \OCP\Util::addStyle('emailbridge', 'emailbridge-main');
+    \OCP\Util::addScript('emailbridge', 'emailbridge-main');
+    \OCP\Util::addStyle('emailbridge', 'emailbridge-main');
 
-        try {
-            $user = $this->userSession->getUser();
-            if (!$user) {
-                return new TemplateResponse($this->appName, 'index', [
-                    'parcoursData' => [],
-                    'createParcoursUrl' => '',
-                ]);
-            }
-            $userId = $user->getUID();
-
-            $qb = $this->db->getQueryBuilder();
-            $qb->select('id', 'titre', 'created_at', 'document_url', 'bypass_file')
-               ->from('emailbridge_parcours')
-                   ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-               ->orderBy('id', 'ASC');
-
-            $result = $qb->executeQuery();
-            $parcours = [];
-            while ($row = $result->fetch()) {
-                $parcours[] = [
-                    'id' => $row['id'],
-                'titre' => $row['titre'],
-                    'created_at' => $row['created_at'],
-            'document_url' => $row['document_url'],
-            'bypass_file' => (int)$row['bypass_file'],
-                ];
-            }
-
-
-            $this->logger->debug('Parcours récupérés: ' . print_r($parcours, true));
-
-            return new TemplateResponse($this->appName, 'index', [
-                'parcoursData' => $parcours,
-                'createParcoursUrl' => $this->urlGenerator->linkToRoute('emailbridge.page.createParcours')
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Erreur index PageController: ' . $e->getMessage());
+    try {
+        $user = $this->userSession->getUser();
+        if (!$user) {
             return new TemplateResponse($this->appName, 'index', [
                 'parcoursData' => [],
-                'createParcoursUrl' => ''
+                'createParcoursUrl' => '',
             ]);
         }
+        $userId = $user->getUID();
+
+        $qb = $this->db->getQueryBuilder();
+	$qb->select('id', 'titre', 'created_at', 'document_url', 'bypass_file', 'helloasso_item_id')
+   	  ->from('emailbridge_parcours')
+   	  ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+   	  ->orderBy('id', 'ASC');
+
+        $result = $qb->executeQuery();
+        $parcours = [];
+        while ($row = $result->fetch()) {
+            // récupération produits HelloAsso pour ce parcours
+            $products = $this->getHelloAssoProducts((int)$row['id']);
+
+            $parcours[] = [
+                'id' => $row['id'],
+                'titre' => $row['titre'],
+                'created_at' => $row['created_at'],
+                'document_url' => $row['document_url'],
+                'bypass_file' => (int)$row['bypass_file'],
+                'helloasso_sale' => !empty($row['helloasso_item_id']), // coche active si un item sélectionné
+                'helloasso_products' => $this->getHelloAssoProducts(),  // liste des produits
+                'selected_helloasso_product' => $row['helloasso_item_id'] ?? null
+            ];
+        }
+
+        $this->logger->debug('Parcours récupérés: ' . print_r($parcours, true));
+
+        return new TemplateResponse($this->appName, 'index', [
+            'parcoursData' => $parcours,
+            'createParcoursUrl' => $this->urlGenerator->linkToRoute('emailbridge.page.createParcours')
+        ]);
+    } catch (\Throwable $e) {
+        $this->logger->error('Erreur index PageController: ' . $e->getMessage());
+        return new TemplateResponse($this->appName, 'index', [
+            'parcoursData' => [],
+            'createParcoursUrl' => ''
+        ]);
     }
+}
+
+private function getHelloAssoProducts(): array
+{
+    $qb = $this->db->getQueryBuilder();
+    $qb->select('helloasso_item_id', 'item_name')
+       ->from('emailbridge_product')
+       ->where($qb->expr()->eq('active', $qb->createNamedParameter(1)));
+
+    $result = $qb->executeQuery();
+    $products = [];
+    while ($row = $result->fetch()) {
+        $products[] = [
+            'id' => $row['helloasso_item_id'],
+            'name' => $row['item_name']
+        ];
+    }
+    return $products;
+}
+
+#[NoAdminRequired]
+#[NoCSRFRequired]
+public function updateHelloAsso(int $id): DataResponse
+{
+    $sale = $this->request->getParam('helloasso_sale');
+    $itemId = $this->request->getParam('selected_item_id');
+
+    try {
+        $qb = $this->db->getQueryBuilder();
+        $qb->update('emailbridge_parcours')
+           ->set('helloasso_item_id', $qb->createNamedParameter($itemId ?: null))
+           ->where($qb->expr()->eq('id', $qb->createNamedParameter($id)))
+           ->executeStatement();
+
+        return new DataResponse(['status'=>'ok']);
+    } catch (\Throwable $e) {
+        $this->logger->error("Erreur updateHelloAsso pour parcours $id: " . $e->getMessage());
+        return new DataResponse(['status'=>'error', 'message'=>$e->getMessage()], 500);
+    }
+}
 
     /**
      * Créer un nouveau parcours

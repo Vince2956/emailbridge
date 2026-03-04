@@ -20,6 +20,7 @@ use OCA\EmailBridge\Service\SequenceService;
 use OCA\EmailBridge\Service\SequenceManagementService;
 use OCA\EmailBridge\Service\EmailService;
 use OCA\EmailBridge\BackgroundJob\EmailSenderJob;
+use OCA\EmailBridge\Controller\WebhookController;
 use OCP\IUserManager;
 
 
@@ -144,6 +145,16 @@ class Application extends App
         	$c->query('Request'),
         	$c->query(IDBConnection::class),
         	$c->query(IConfig::class)
+    	    );
+	});
+	
+	$container->registerService(WebhookController::class, function($c) {
+    	    return new WebhookController(
+        	self::APP_ID,
+        	$c->query('Request'),
+        	$c->query(IConfig::class),
+        	$c->query(LoggerInterface::class),
+        	$c->query(EmailService::class)
     	    );
 	});
 

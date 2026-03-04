@@ -30,6 +30,7 @@ return [
         ['name' => 'page#saveFile',       'url' => '/parcours/{id}/saveFile', 'verb' => 'POST'],
         ['name' => 'page#deleteParcours', 'url' => '/parcours/{parcoursId}/delete', 'verb' => 'POST'],
         ['name' => 'page#updateBypass',   'url' => '/parcours/{id}/update-bypass', 'verb' => 'POST'],
+        ['name' => 'page#updateHelloAsso', 'url' => '/parcours/{id}/update-helloasso', 'verb' => 'POST'],
 
         // Messages
         ['name' => 'message#getEmailMessage', 'url' => '/message/{parcoursId}', 'verb' => 'GET'],
@@ -54,7 +55,6 @@ return [
 	['name' => 'unsubscribe#process', 'url' => '/unsubscribe', 'verb' => 'GET'],
 
 	//déjà inscrit
-	//['name' => 'form#alreadyConfirm','url' => '/already-confirmed','verb' => 'GET','controller' => 'FormController','method' => 'alreadyConfirm'],
 	['name' => 'form#alreadyConfirm', 'url' => '/already-confirmed', 'verb' => 'GET'],
 	['name' => 'form#alreadyRegistered', 'url' => '/already-registered', 'verb' => 'GET'],
 
@@ -80,5 +80,11 @@ return [
         ['name' => 'admin#import', 'url'  => '/admin/import', 'verb' => 'POST'],
         ['name' => 'admin#saveSettings', 'url'  => '/admin/save-settings', 'verb' => 'POST'],
         ['name' => 'admin#reset', 'url'  => '/admin/reset', 'verb' => 'POST'],
+        ['name' => 'admin#saveHelloAssoKey', 'url'  => '/admin/save-helloasso-key', 'verb' => 'POST'],
+        ['name' => 'admin#fetchHelloAssoProducts', 'url'  => '/admin/fetch-helloasso-products', 'verb' => 'GET'],
+        ['name' => 'admin#saveHelloAssoSelection', 'url' => '/admin/save-helloasso-selection', 'verb' => 'POST'],
+                
+        //Webhook
+        ['name' => 'webhook#helloAsso', 'url' => '/helloasso/webhook', 'verb' => 'POST', 'public' => true],
     ]
 ];

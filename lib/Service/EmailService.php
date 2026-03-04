@@ -972,7 +972,35 @@ class EmailService
     }
 
 
+/**
+ * Retourne le parcours associé à un item HelloAsso donné.
+ *
+ * @param int|string $itemId L'identifiant du produit HelloAsso
+ * @return array|null Tableau du parcours ou null si aucun trouvé
+ */
+public function getParcoursByHelloAssoItem($itemId): ?array
+{
+    try {
+        $qb = $this->db->getQueryBuilder();
 
+        // Requête pour récupérer le parcours qui a ce produit HelloAsso sélectionné
+        $qb->select('*')
+           ->from('emailbridge_parcours')
+           ->where('helloasso_item_id = :itemId')
+           ->setParameter('itemId', $itemId)
+           ->setMaxResults(1);
+
+        $row = $qb->executeQuery()->fetch(); // <--- compatible Nextcloud
+
+        return $row ?: null;
+
+    } catch (\Throwable $e) {
+        $this->logger->error("getParcoursByHelloAssoItem error: " . $e->getMessage(), [
+            'itemId' => $itemId
+        ]);
+        return null;
+    }
+}
 
 
 

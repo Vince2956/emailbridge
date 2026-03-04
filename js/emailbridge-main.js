@@ -53,7 +53,7 @@ function renderParcours() {
         parcoursDiv.appendChild(emptyMsg);
     }
 
-    window.parcoursData.forEach(p => {
+    window.parcoursData.forEach(p => {    
         const col = document.createElement('div');
         col.className = 'parcours-column';
         col.dataset.id = p.id;
@@ -83,6 +83,61 @@ function renderParcours() {
         const checkbox = bypassBlock.querySelector('.bypass-file');
         checkbox.style.cursor = 'pointer';
         col.appendChild(bypassBlock);
+
+// --- Checkbox HelloAsso + liste déroulante ---
+const helloassoBlock = document.createElement('div');
+helloassoBlock.className = 'parcours-helloasso';
+helloassoBlock.style.marginBottom = '8px';
+
+helloassoBlock.innerHTML = `
+    <label>
+        <input type="checkbox" class="helloasso-sale" ${p.helloasso_sale ? 'checked' : ''}>
+        Vente HelloAsso
+    </label>
+    <select class="helloasso-products">
+        <option value="">-- Sélectionnez un produit --</option>
+        ${p.helloasso_products.map(prod => `
+            <option value="${prod.id}" ${prod.id === p.selected_helloasso_product ? 'selected' : ''}>${prod.name}</option>
+        `).join('')}
+    </select>
+`;
+
+col.appendChild(helloassoBlock);
+
+// --- Sauvegarde backend ---
+const helloCheckbox = helloassoBlock.querySelector('.helloasso-sale');
+const helloSelect = helloassoBlock.querySelector('.helloasso-products');
+
+// désactiver le select si la checkbox n'est pas cochée
+helloSelect.disabled = !helloCheckbox.checked;
+
+// mettre à jour à chaque changement de checkbox
+helloCheckbox.addEventListener('change', () => {
+    helloSelect.disabled = !helloCheckbox.checked;
+
+    // si décoché, remettre l'option vide sélectionnée
+    if (!helloCheckbox.checked) {
+        helloSelect.value = "";
+    }
+
+    saveHelloAsso();
+});
+
+// fonction de sauvegarde
+const saveHelloAsso = async () => {
+    await fetch(getUrl(`/apps/emailbridge/parcours/${p.id}/update-helloasso`), {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+        body: new URLSearchParams({
+            requesttoken: csrfToken,
+            helloasso_sale: helloCheckbox.checked ? 1 : 0,
+            selected_item_id: helloSelect.value
+        })
+    });
+};
+
+// déclencher la sauvegarde quand on change la sélection
+helloSelect.addEventListener('change', saveHelloAsso);
 
         // --- Conteneur pour fichier cible + bouton message ---
         const targetBlock = document.createElement('div');

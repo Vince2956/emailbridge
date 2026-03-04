@@ -15,17 +15,26 @@ class EmailBridgeAdmin implements ISettings {
         $this->l = $l;
     }
 
-    public function getForm() {
-        // récupère la valeur sauvegardée
-        $delete = $this->config->getAppValue('emailbridge', 'delete_on_uninstall', '0');
-        $deleteBool = $delete === '1';
+public function getForm() {
 
-        $parameters = [
-            'delete_on_uninstall' => $deleteBool,
-        ];
+    $delete = $this->config->getAppValue('emailbridge', 'delete_on_uninstall', '0');
 
-        return new TemplateResponse('emailbridge', 'settings/admin', $parameters, '');
-    }
+    return new TemplateResponse('emailbridge', 'settings/admin', [
+
+        'delete_on_uninstall' =>
+            $delete === '1',
+
+        'helloasso_slug' =>
+            $this->config->getAppValue('emailbridge', 'helloasso_slug', ''),
+
+        'helloasso_client_id' =>
+            $this->config->getAppValue('emailbridge', 'helloasso_client_id', ''),
+
+        'helloasso_client_secret' =>
+            $this->config->getAppValue('emailbridge', 'helloasso_client_secret', ''),
+
+    ], '');
+}
 
     public function getSection() {
         return 'emailbridge'; // Doit correspondre à l'ID de la section

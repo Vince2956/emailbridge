@@ -56,6 +56,84 @@ style('emailbridge', 'admin');
 </form>
 -->
 
+
+<!-- ============================= -->
+<!-- HELLOASSO -->
+<!-- ============================= -->
+<div style="margin-top:30px;">
+<h2>Paramètres HelloAsso</h2>
+
+<form id="helloAssoForm" method="post" action="javascript:void(0);">
+
+    <!-- SLUG -->
+    <div style="margin-bottom:15px;">
+        <label><strong>Slug organisation</strong></label><br>
+        <input 
+            type="text" 
+            id="helloAssoSlug" 
+            value="<?php p($_['helloasso_slug'] ?? ''); ?>"
+            placeholder="ex: association-la-cascade"
+            style="width:400px;"
+        />
+        <p style="font-size:12px;color:#666;">
+            Correspond au nom visible dans l’URL HelloAsso.
+        </p>
+    </div>
+
+    <!-- CLIENT ID -->
+    <div style="margin-bottom:10px;">
+        <label>Client ID</label><br>
+        <input 
+            type="text" 
+            id="helloAssoClientId"
+            value="<?php p($_['helloasso_client_id'] ?? ''); ?>"
+            style="width:400px;" 
+        />
+    </div>
+
+    <!-- CLIENT SECRET -->
+    <div style="margin-bottom:10px;">
+        <label>Client Secret</label><br>
+        <input 
+            type="password" 
+            id="helloAssoClientSecret"
+            value="<?php p($_['helloasso_client_secret'] ?? ''); ?>"
+            style="width:400px;" 
+        />
+    </div>
+
+    <button type="submit" class="primary">
+        Enregistrer la configuration
+    </button>
+
+</form>
+
+<div id="helloAssoApiResult" style="margin-top:10px;"></div>
+
+<hr style="margin:25px 0;">
+
+<!-- PRODUITS -->
+<div>
+    <button id="loadHelloAssoProducts" class="primary">
+        Recharger la liste des produits
+    </button>
+</div>
+
+<div id="helloAssoProducts" style="margin-top:15px;">
+    <!-- Produits injectés ici -->
+</div>
+
+<div style="margin-top:15px;">
+    <button id="saveHelloAssoSelection" class="primary">
+        Enregistrer la sélection
+    </button>
+</div>
+
+<div id="helloAssoResult" style="margin-top:10px;"></div>
+
+</div>
+
+
 <!-- ============================= -->
 <!-- RESET -->
 <!-- ============================= -->
