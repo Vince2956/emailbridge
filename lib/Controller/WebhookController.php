@@ -58,7 +58,7 @@ public function helloAsso(string $userId): DataResponse
         // ✅ Boucle sur les items
         $items = $payload['data']['items'] ?? [];
         foreach ($items as $item) {
-            $itemId = $item['id'] ?? null;
+            $itemId = $item['name'] ?? null;
             if (!$itemId) continue;
 
             // Trouver le parcours correspondant pour ce user
