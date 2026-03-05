@@ -36,11 +36,9 @@ class WebhookController extends Controller
 public function helloAsso(string $userId): DataResponse
 {
     try {
-
         // 1️⃣ Vérifie le token utilisateur
         $tokenFromRequest = $this->request->getParam('token');
         $tokenFromConfig  = $this->config->getUserValue($userId, 'emailbridge', 'webhook_token', '');
-
         if (!$tokenFromRequest || $tokenFromRequest !== $tokenFromConfig) {
             return new DataResponse(['status'=>'Unauthorized'], 401);
         }
@@ -51,33 +49,29 @@ public function helloAsso(string $userId): DataResponse
             return new DataResponse(['status'=>'error','message'=>'Payload vide'], 400);
         }
 
-        $email  = $payload['data']['email'] ?? null;
-        $itemId = $payload['data']['itemId'] ?? null;
-
-        if (!$email || !$itemId) {
-            return new DataResponse(['status'=>'error','message'=>'Email ou produit manquant'], 400);
+        // ✅ Récupère l'email du payeur
+        $email = $payload['data']['payer']['email'] ?? null;
+        if (!$email) {
+            return new DataResponse(['status'=>'error','message'=>'Email manquant'], 400);
         }
 
-        // 3️⃣ Trouver parcours POUR CE USER
-        $parcours = $this->emailService->getParcoursByHelloAssoItemForUser($itemId, $userId);
+        // ✅ Boucle sur les items
+        $items = $payload['data']['items'] ?? [];
+        foreach ($items as $item) {
+            $itemId = $item['id'] ?? null;
+            if (!$itemId) continue;
 
-        if (!$parcours) {
-            return new DataResponse(['status'=>'error','message'=>'Aucun parcours associé à ce produit'], 404);
-        }
+            // Trouver le parcours correspondant pour ce user
+            $parcours = $this->emailService->getParcoursByHelloAssoItemForUser($itemId, $userId);
+            if (!$parcours) continue;
 
-        $parcoursId = (int)$parcours['id'];
+            $parcoursId = (int)$parcours['id'];
 
-        // 4️⃣ Inscription
-        if (!$this->emailService->isAlreadyInscribed($email, $parcoursId)) {
-
-            $documentUrl = $this->emailService->getDocumentUrlForParcours($parcoursId);
-
-            $this->emailService->storeAndSend(
-                $email,
-                $documentUrl,
-                $parcoursId,
-                false
-            );
+            // Inscription si pas déjà inscrite
+            if (!$this->emailService->isAlreadyInscribed($email, $parcoursId)) {
+                $documentUrl = $this->emailService->getDocumentUrlForParcours($parcoursId);
+                $this->emailService->storeAndSend($email, $documentUrl, $parcoursId, false);
+            }
         }
 
         return new DataResponse(['status'=>'ok','message'=>'Inscription enregistrée']);
