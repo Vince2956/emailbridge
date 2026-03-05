@@ -1,9 +1,23 @@
+let result = null;
+
+function setResult(html) {
+    if (!result) return;
+
+    result.innerHTML = html;
+
+    setTimeout(() => {
+        result.innerHTML = '';
+    }, 4000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
-    const result = document.getElementById('result');
+    
+    result = document.getElementById('result');
+
     const settingsForm = document.getElementById('settingsForm');
     const deleteCheckbox = document.getElementById('delete_on_uninstall');
 
@@ -21,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================
     // IMPORT
     // ============================
+        
     if (importBtn) {
         importBtn.addEventListener('click', async () => {
 
@@ -44,9 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 'ok') {
-                result.innerHTML = '<span style="color:green">Import réussi</span>';
+                setResult('<span style="color:green">Import réussi</span>');
             } else {
-                result.innerHTML = '<span style="color:red">' + data.message + '</span>';
+                setResult('<span style="color:red">' + (data.message || 'Erreur') + '</span>');
             }
         });
     }
@@ -71,9 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Réponse saveSettings', data);
 
     if (data.status === 'ok') {
-        result.innerHTML = '<span style="color:green">Paramètres enregistrés</span>';
+        setResult('<span style="color:green">Paramètres enregistrés</span>');
     } else {
-        result.innerHTML = '<span style="color:red">Erreur lors de l’enregistrement</span>';
+        setResult('<span style="color:red">Erreur lors de l’enregistrement</span>');
     }
 });
 
@@ -276,7 +291,7 @@ if (resetBtn) {
             return;
         }
 
-        result.innerHTML = 'Réinitialisation en cours…';
+        setResult('Réinitialisation en cours…');
 
         const response = await fetch(baseUrl + '/admin/reset', {
             method: 'POST',
@@ -289,9 +304,9 @@ if (resetBtn) {
         const data = await response.json();
 
         if (data.status === 'ok') {
-            result.innerHTML = '<span style="color:green">' + data.message + '</span>';
+            setResult('<span style="color:green">' + data.message + '</span>');
         } else {
-            result.innerHTML = '<span style="color:red">' + data.message + '</span>';
+            setResult('<span style="color:red">' + data.message + '</span>');
         }
     });
 }

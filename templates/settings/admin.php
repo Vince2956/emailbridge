@@ -25,6 +25,7 @@ style('emailbridge', 'admin');
             <button id="importBtn">
                 Importer
             </button>
+            <div id="result" style="margin-top:10px;"></div>
         </div>
     </div>
 

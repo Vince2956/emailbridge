@@ -194,6 +194,7 @@ public function saveSettings(): DataResponse {
             'envoi'         => 'emailbridge_envoi',
             'stats'         => 'emailbridge_stats',
             'form'          => 'emailbridge_form',
+            'product' 	    => 'emailbridge_product',
         ];
 
         try {
