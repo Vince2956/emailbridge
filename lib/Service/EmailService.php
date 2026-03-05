@@ -971,6 +971,25 @@ class EmailService
         }
     }
 
+public function isEmailStatAlreadyRecorded(int $emailId, int $inscriptionId, string $column): bool
+{
+    $qb = $this->db->getQueryBuilder();
+
+    $value = $qb->select($column)
+        ->from('emailbridge_stats')
+        ->where(
+            $qb->expr()->andX(
+                $qb->expr()->eq('email_id', $qb->createNamedParameter($emailId)),
+                $qb->expr()->eq('inscription_id', $qb->createNamedParameter($inscriptionId))
+            )
+        )
+        ->setMaxResults(1)
+        ->executeQuery()
+        ->fetchOne();
+
+    return $value !== false && (int)$value > 0;
+}
+
 
 /**
  * Retourne le parcours associé à un item HelloAsso donné.

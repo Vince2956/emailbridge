@@ -54,9 +54,20 @@ class TrackingController extends Controller
     {
         try {
             if ($email_id && $inscription_id) {
-                $this->emailService->incrementEmailStat($email_id, $inscription_id, 'opened');
-                $this->logger->info("📬 TrackingController: ouverture mail (email_id=$email_id, inscription_id=$inscription_id)");
-            } else {
+
+    if (!$this->emailService->isEmailStatAlreadyRecorded($email_id, $inscription_id, 'opened')) {
+
+        $this->emailService->incrementEmailStat($email_id, $inscription_id, 'opened');
+
+        $this->logger->info("📬 Première ouverture (email_id=$email_id, inscription_id=$inscription_id)");
+
+    } else {
+
+        $this->logger->debug("📬 Ouverture déjà enregistrée (email_id=$email_id, inscription_id=$inscription_id)");
+
+    }
+
+} else {
                 $this->logger->warning("⚠️ TrackingController: paramètres manquants pour trackOpen");
             }
         } catch (\Throwable $e) {
