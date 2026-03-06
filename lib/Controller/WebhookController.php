@@ -45,6 +45,7 @@ public function helloAsso(string $userId): DataResponse
 
         // 2️⃣ Payload
         $payload = json_decode(file_get_contents('php://input'), true);
+        $this->logger->info('HelloAsso payload', ['payload' => $payload]);
         if (!$payload) {
             return new DataResponse(['status'=>'error','message'=>'Payload vide'], 400);
         }
@@ -56,25 +57,27 @@ public function helloAsso(string $userId): DataResponse
         }
 
         // ✅ Boucle sur les items
-        $items = $payload['data']['items'] ?? [];
-        foreach ($items as $item) {
-            $itemId = $item['name'] ?? null;
-            if (!$itemId) continue;
+        $formSlug = $payload['data']['formSlug'] ?? null;
 
-            // Trouver le parcours correspondant pour ce user
-            $parcours = $this->emailService->getParcoursByHelloAssoItemForUser($itemId, $userId);
-            if (!$parcours) continue;
+	if (!$formSlug) {
+	    return new DataResponse(['status'=>'error','message'=>'formSlug manquant'], 400);
+	}
+	
+	$parcours = $this->emailService->getParcoursByHelloAssoItemForUser($formSlug, $userId);
 
-            $parcoursId = (int)$parcours['id'];
+	if (!$parcours) {
+	    return new DataResponse(['status'=>'ignored','message'=>'Produit non lié'], 200);
+	}
+	
+	$parcoursId = (int)$parcours['id'];
+	
+	// Inscription si pas déjà faite
+	if (!$this->emailService->isAlreadyInscribed($email, $parcoursId)) {
+	    $documentUrl = $this->emailService->getDocumentUrlForParcours($parcoursId);
+	    $this->emailService->storeAndSend($email, $documentUrl, $parcoursId, false);
+	}
 
-            // Inscription si pas déjà inscrite
-            if (!$this->emailService->isAlreadyInscribed($email, $parcoursId)) {
-                $documentUrl = $this->emailService->getDocumentUrlForParcours($parcoursId);
-                $this->emailService->storeAndSend($email, $documentUrl, $parcoursId, false);
-            }
-        }
-
-        return new DataResponse(['status'=>'ok','message'=>'Inscription enregistrée']);
+	return new DataResponse(['status'=>'ok','message'=>'Inscription enregistrée']);
 
     } catch (\Throwable $e) {
         $this->logger->error('Erreur webhook HelloAsso', ['exception' => $e]);

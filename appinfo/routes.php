@@ -86,6 +86,6 @@ return [
         ['name' => 'admin#regenerateWebhookToken', 'url'  => '/admin/regenerate-webhook-token', 'verb' => 'POST'],
                 
         //Webhook
-        ['name' => 'webhook#helloAsso', 'url' => '/helloasso/webhook/{userId}', 'verb' => 'POST', 'public' => true],
+        ['name' => 'webhook#helloAsso', 'url' => '/helloasso/webhook/{userId}', 'verb' => 'POST'],
     ]
 ];
